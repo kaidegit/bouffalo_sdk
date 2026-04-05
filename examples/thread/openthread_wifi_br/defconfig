@@ -1,6 +1,6 @@
 -include $(BL_SDK_BASE)/examples/wifi/defconfig
 
-CONFIG_MBEDTLS_ECC_USE_HW    =n
+CONFIG_MBEDTLS_ECC_USE_HW    =y
 CONFIG_POSIX                 =n
 
 CONFIG_MBEDTLS_KEY_EXCHANGE_ECJPAKE_ENABLED=y

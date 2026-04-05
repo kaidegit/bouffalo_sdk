@@ -6,6 +6,7 @@
 #include "bflb_dma.h"
 #include "bflb_audac.h"
 #include "bflb_auadc.h"
+#include "bflb_flash.h"
 #include "bflb_l1c.h"
 #include "bflb_mtimer.h"
 #include "audio_codec.h"
@@ -107,6 +108,9 @@ typedef struct {
 #endif
 #if WAVE_PLAYER_ENABLE_REC_RB
 #define WAVE_PLAYER_REC_MAX_SAMPLES (WAVE_PLAYER_REC_MAX_FS_HZ * WAVE_PLAYER_REC_SECONDS * WAVE_PLAYER_REC_CHANNELS)
+#define WAVE_PLAYER_REC_DUMP_FLASH_ADDR_DEFAULT      (0x378000U)
+#define WAVE_PLAYER_REC_DUMP_FLASH_MEDIA_SIZE_DEFAULT (0x71000U)
+#define WAVE_PLAYER_REC_DUMP_FLASH_ERASE_ALIGN       (4096U)
 #endif
 #endif
 
@@ -1536,6 +1540,20 @@ cleanup:
 
 #if WAVE_PLAYER_ENABLE_REC
 #if WAVE_PLAYER_ENABLE_REC_RB
+static uint32_t align_up_u32(uint32_t value, uint32_t align)
+{
+    if (align == 0U) {
+        return value;
+    }
+
+    uint32_t rem = value % align;
+    if (rem == 0U) {
+        return value;
+    }
+
+    return value + (align - rem);
+}
+
 static uint32_t gcd_u32(uint32_t a, uint32_t b)
 {
     while (b != 0U) {
@@ -1603,6 +1621,107 @@ static void recorder_reorder_ring_s16(int16_t *buf, uint32_t len, uint32_t write
     if (write_pos != 0U) {
         rotate_left_s16(buf, len, write_pos);
     }
+}
+
+static int wave_player_rec_dump_flash(uint32_t flash_addr, uint32_t max_bytes)
+{
+    uint32_t write_pos;
+    uint32_t sample_rate;
+    uint32_t total_samples;
+    uint32_t capacity = (uint32_t)WAVE_PLAYER_REC_MAX_SAMPLES;
+    uint32_t start_idx;
+    uint32_t erase_bytes;
+    uint32_t first_samples;
+    uint32_t second_samples;
+    uint32_t dump_bytes;
+    bool filled;
+    bool truncated = false;
+
+    if (g_audio.wave_task != NULL) {
+        printf("rec_dump_flash: audio active, stop playback/record first\r\n");
+        return -1;
+    }
+
+    taskENTER_CRITICAL();
+    write_pos = g_audio.rec_write;
+    filled = g_audio.rec_filled;
+    sample_rate = g_audio.cap_hz;
+    taskEXIT_CRITICAL();
+
+    total_samples = filled ? capacity : write_pos;
+    if (total_samples == 0U) {
+        printf("rec_dump_flash: no data\r\n");
+        return -1;
+    }
+
+    start_idx = filled ? (write_pos % capacity) : 0U;
+
+    max_bytes &= ~(uint32_t)(sizeof(int16_t) - 1U);
+    if (max_bytes == 0U) {
+        printf("rec_dump_flash: max_bytes must be >= %u\r\n", (unsigned)sizeof(int16_t));
+        return -1;
+    }
+
+    if ((total_samples * (uint32_t)sizeof(int16_t)) > max_bytes) {
+        uint32_t limit_samples = max_bytes / (uint32_t)sizeof(int16_t);
+        uint32_t skip_samples = total_samples - limit_samples;
+        start_idx = (start_idx + skip_samples) % capacity;
+        total_samples = limit_samples;
+        truncated = true;
+    }
+
+    dump_bytes = total_samples * (uint32_t)sizeof(int16_t);
+    erase_bytes = align_up_u32(dump_bytes, WAVE_PLAYER_REC_DUMP_FLASH_ERASE_ALIGN);
+    if (erase_bytes < dump_bytes) {
+        printf("rec_dump_flash: erase size overflow\r\n");
+        return -1;
+    }
+
+    if ((flash_addr + erase_bytes) < flash_addr) {
+        printf("rec_dump_flash: address overflow\r\n");
+        return -1;
+    }
+
+    if (sample_rate == 0U) {
+        sample_rate = 16000U;
+    }
+
+    if (bflb_flash_erase(flash_addr, erase_bytes) != 0) {
+        printf("rec_dump_flash: erase failed addr=0x%08lx len=0x%08lx\r\n",
+               (unsigned long)flash_addr, (unsigned long)erase_bytes);
+        return -1;
+    }
+
+    first_samples = total_samples;
+    if ((start_idx + first_samples) > capacity) {
+        first_samples = capacity - start_idx;
+    }
+    second_samples = total_samples - first_samples;
+
+    if (first_samples > 0U) {
+        uint32_t first_bytes = first_samples * (uint32_t)sizeof(int16_t);
+        if (bflb_flash_write(flash_addr, (uint8_t *)&g_audio.rec_mono_buf[start_idx], first_bytes) != 0) {
+            printf("rec_dump_flash: write failed addr=0x%08lx len=0x%08lx\r\n",
+                   (unsigned long)flash_addr, (unsigned long)first_bytes);
+            return -1;
+        }
+    }
+
+    if (second_samples > 0U) {
+        uint32_t second_addr = flash_addr + first_samples * (uint32_t)sizeof(int16_t);
+        uint32_t second_bytes = second_samples * (uint32_t)sizeof(int16_t);
+        if (bflb_flash_write(second_addr, (uint8_t *)g_audio.rec_mono_buf, second_bytes) != 0) {
+            printf("rec_dump_flash: write failed addr=0x%08lx len=0x%08lx\r\n",
+                   (unsigned long)second_addr, (unsigned long)second_bytes);
+            return -1;
+        }
+    }
+
+    printf("rec_dump_flash: addr=0x%08lx bytes=%lu samples=%lu sample_rate=%lu ch=1 erase=0x%08lx%s\r\n",
+           (unsigned long)flash_addr, (unsigned long)dump_bytes, (unsigned long)total_samples,
+           (unsigned long)sample_rate, (unsigned long)erase_bytes,
+           truncated ? " [truncated to media window]" : "");
+    return 0;
 }
 #endif
 
@@ -2353,6 +2472,35 @@ static int cmd_rec_play(int argc, char **argv)
     return 0;
 #endif
 }
+
+static int cmd_rec_dump_flash(int argc, char **argv)
+{
+#if !WAVE_PLAYER_ENABLE_REC_RB
+    (void)argc;
+    (void)argv;
+    printf("rec_dump_flash: disabled (WAVE_PLAYER_ENABLE_REC_RB=0)\r\n");
+    return -1;
+#else
+    uint32_t flash_addr = WAVE_PLAYER_REC_DUMP_FLASH_ADDR_DEFAULT;
+    uint32_t max_bytes = WAVE_PLAYER_REC_DUMP_FLASH_MEDIA_SIZE_DEFAULT;
+
+    if (argc >= 2) {
+        flash_addr = (uint32_t)strtoul(argv[1], NULL, 0);
+    }
+    if (argc >= 3) {
+        max_bytes = (uint32_t)strtoul(argv[2], NULL, 0);
+    }
+    if (argc > 3) {
+        printf("usage: rec_dump_flash [flash_addr] [max_bytes]\r\n");
+        printf("default: rec_dump_flash 0x%08lx 0x%08lx\r\n",
+               (unsigned long)WAVE_PLAYER_REC_DUMP_FLASH_ADDR_DEFAULT,
+               (unsigned long)WAVE_PLAYER_REC_DUMP_FLASH_MEDIA_SIZE_DEFAULT);
+        return -1;
+    }
+
+    return wave_player_rec_dump_flash(flash_addr, max_bytes);
+#endif
+}
 #endif
 
 static int cmd_audio_start(int argc, char **argv)
@@ -2690,6 +2838,7 @@ SHELL_CMD_EXPORT_ALIAS(cmd_audio_diag, audio_diag, "show/reset audio diagnostics
 SHELL_CMD_EXPORT_ALIAS(cmd_rec_start, rec_start, "start recording: rec_start <duration_ms> <sample_rate> <channels>");
 SHELL_CMD_EXPORT_ALIAS(cmd_rec_stop, rec_stop, "stop recording");
 SHELL_CMD_EXPORT_ALIAS(cmd_rec_play, rec_play, "play recording: rec_play");
+SHELL_CMD_EXPORT_ALIAS(cmd_rec_dump_flash, rec_dump_flash, "dump last record buffer to flash: rec_dump_flash [flash_addr] [max_bytes]");
 SHELL_CMD_EXPORT_ALIAS(cmd_rec_vol, rec_vol, "set record digital volume: rec_vol <0-100>");
 SHELL_CMD_EXPORT_ALIAS(cmd_rec_pga, rec_pga, "set record mic pga: rec_pga <0-100>");
 SHELL_CMD_EXPORT_ALIAS(cmd_rec_en, rec_en, "enable/disable record path: rec_en <0|1>");

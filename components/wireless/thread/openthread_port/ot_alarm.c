@@ -104,7 +104,7 @@ void otPlatAlarmMicroStartAt(otInstance *aInstance, uint32_t aT0, uint32_t aDt)
     current = zb_timer_get_current_time() << OT_ALARM_US_PER_TICK_BIT;
     if (current - aT0 < aDt) {
         delta = (current - aT0 + aDt + (1 << OT_ALARM_US_PER_TICK_BIT) / 2) >> OT_ALARM_US_PER_TICK_BIT;
-        zb_timer_start(OT_ALARM_MILLI_TIMER_ID, zb_timer_get_current_time() + delta, otPlatALarm_usTimerCallback);
+        zb_timer_start(OT_ALARM_MICRO_TIMER_ID, zb_timer_get_current_time() + delta, otPlatALarm_usTimerCallback);
     }
     else {
         otrNotifyEvent(OT_SYSTEM_EVENT_ALARM_US_EXPIRED);

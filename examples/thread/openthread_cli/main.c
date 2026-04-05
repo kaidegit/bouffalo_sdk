@@ -4,6 +4,9 @@
 
 #if defined (BL616)
 #include <rfparam_adapter.h>
+#include "bl616.h"
+#elif defined (BL702L)
+#include "bl702l.h"
 #endif
 
 #include <bl_sys.h>
@@ -18,17 +21,17 @@
 #include OPENTHREAD_PROJECT_CORE_CONFIG_FILE
 #include <openthread_port.h>
 #include <openthread/cli.h>
-
+#if defined(CONFIG_THREAD_TPERF)
+#include <ot_tperf.h>
+#endif
 #include "board.h"
 
 static struct bflb_device_s *uart0;
 
 extern void __libc_init_array(void);
-#if defined(OT_SERIAL_SHELL)
 extern void shell_init_with_task(struct bflb_device_s *shell);
-#endif
 
-static void ot_stateChangedCallback(otChangedFlags aFlags, void *aContext) 
+static void ot_stateChangedCallback(otChangedFlags aFlags, void *aContext)
 {
     char string[OT_IP6_ADDRESS_STRING_SIZE];
 
@@ -36,7 +39,7 @@ static void ot_stateChangedCallback(otChangedFlags aFlags, void *aContext)
         otDeviceRole role = otThreadGetDeviceRole(otrGetInstance());
         const otNetifAddress *unicastAddrs = otIp6GetUnicastAddresses(otrGetInstance());
 
-        APP_PRINT ("state_role_changed %ld %s, partition id %d\r\n", zb_timer_get_current_time(), 
+        APP_PRINT ("state_role_changed %ld %s, partition id %d\r\n", zb_timer_get_current_time(),
                 otThreadDeviceRoleToString(role), otThreadGetPartitionId(otrGetInstance()));
 
         for (const otNetifAddress *addr = unicastAddrs; addr; addr = addr->mNext) {
@@ -49,7 +52,7 @@ static void ot_stateChangedCallback(otChangedFlags aFlags, void *aContext)
         otDeviceRole role = otThreadGetDeviceRole(otrGetInstance());
         const otNetifAddress *unicastAddrs = otIp6GetUnicastAddresses(otrGetInstance());
 
-        APP_PRINT ("state_address_changed %ld %s, partition id %d\r\n", zb_timer_get_current_time(), 
+        APP_PRINT ("state_address_changed %ld %s, partition id %d\r\n", zb_timer_get_current_time(),
                 otThreadDeviceRoleToString(role), otThreadGetPartitionId(otrGetInstance()));
 
         for (const otNetifAddress *addr = unicastAddrs; addr; addr = addr->mNext) {
@@ -59,14 +62,80 @@ static void ot_stateChangedCallback(otChangedFlags aFlags, void *aContext)
     }
 
     if (OT_CHANGED_THREAD_PARTITION_ID & aFlags) {
-        APP_PRINT ("st_part %ld %s, partition id %d\r\n", zb_timer_get_current_time(), 
+        APP_PRINT ("st_part %ld %s, partition id %d\r\n", zb_timer_get_current_time(),
                 otThreadDeviceRoleToString(otThreadGetDeviceRole(otrGetInstance())), otThreadGetPartitionId(otrGetInstance()));
     }
+}
+
+static void lmac154_app_init(void)
+{
+    irq_callback lmac154_isr_callback;
+
+    lmac154_init();
+    lmac154_enableCoex();
+    lmac154_setStd2015Extra(true);
+    lmac154_setTxRetry(0);
+    lmac154_fptClear();
+    lmac154_setEnhAckWaitTime((LMAC154_AIFS + 10 + (6 + 42) * 2) << LMAC154_US_PER_SYMBOL_BITS);
+    lmac154_setRxStateWhenIdle(true);
+
+#if defined(BL702L)
+    lmac154_setTxRxTransTime(0xA0);
+#endif
+
+    zb_timer_cfg(bflb_mtimer_get_time_us() >> LMAC154_US_PER_SYMBOL_BITS);
+    lmac154_disableRx();
+
+    lmac154_isr_callback = (irq_callback)lmac154_getInterruptCallback();
+    bflb_irq_attach(M154_INT_IRQn, lmac154_isr_callback, NULL);
+    bflb_irq_enable(M154_INT_IRQn);
+}
+
+static void prvInitTask(void *pvParameters)
+{
+    otRadio_opt_t opt;
+
+    lmac154_app_init();
+
+#if CONFIG_LMAC154_DBG
+    lmac154_dbg_trace_init();
+#endif
+
+    // Configure and start OpenThread
+    opt.byte = 0;
+
+    opt.bf.isCoexEnable = false;
+#if OPENTHREAD_FTD
+    opt.bf.isFtd = true;
+#endif
+
+#if OPENTHREAD_CONFIG_MLE_LINK_METRICS_SUBJECT_ENABLE
+    opt.bf.isLinkMetricEnable = true;
+#endif
+#if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
+    opt.bf.isCSLReceiverEnable = true;
+#endif
+
+#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
+    opt.bf.isTimeSyncEnable = true;
+#endif
+
+    otrStart(opt);
+
+    vTaskDelete(NULL);
 }
 
 void otrInitUser(otInstance * instance)
 {
     otAppCliInit(instance);
+
+#if defined(CONFIG_THREAD_TPERF)
+    if (tperf_init(instance) == 0) {
+        printf("[tperf] Initialized\r\n");
+    } else {
+        printf("[tperf] WARNING: Initialization failed\r\n");
+    }
+#endif
 
     if (otDatasetIsCommissioned(otrGetInstance())) {
         otIp6SetEnabled(otrGetInstance(), true);
@@ -87,13 +156,16 @@ void vApplicationTickHook( void )
 
 int main(void)
 {
-    otRadio_opt_t opt;
-
 #if defined BL616 || defined BL702
     bl_sys_rstinfo_init();
 #endif
 
     board_init();
+
+    uart0 = bflb_device_get_by_name("uart0");
+    shell_init_with_task(uart0);
+
+    __libc_init_array();
 
     bflb_mtd_init();
 
@@ -105,41 +177,8 @@ int main(void)
         return 0;
     }
 #endif
-    
-    __libc_init_array();
 
-#if CONFIG_LMAC154_DBG
-    lmac154_dbg_trace_init();
-#endif
-
-    uart0 = bflb_device_get_by_name("uart0");
-#if defined(OT_SERIAL_SHELL)
-    shell_init_with_task(uart0);
-#elif defined (OT_SERIAL_UART)
-    ot_uart_init(uart0);
-#else
-    #error "No serial interface specified."
-#endif
-
-    opt.byte = 0;
-
-    opt.bf.isCoexEnable = false;
-#if OPENTHREAD_FTD
-    opt.bf.isFtd = true;
-#endif
-
-#if OPENTHREAD_CONFIG_MLE_LINK_METRICS_SUBJECT_ENABLE
-    opt.bf.isLinkMetricEnable = true;
-#endif
-#if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
-    opt.bf.isCSLReceiverEnable = true;
-#endif
-
-#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
-    opt.bf.isTimeSyncEnable = true;
-#endif
-
-    otrStart(opt);
+    xTaskCreate(prvInitTask, "init", 1024, NULL, 15, NULL);
 
     puts("[OS] Starting OS Scheduler...\r\n");
     vTaskStartScheduler();

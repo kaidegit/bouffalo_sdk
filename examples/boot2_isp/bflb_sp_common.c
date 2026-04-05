@@ -43,6 +43,7 @@
 #include "bflb_sp_media_boot.h"
 #include "bflb_flash.h"
 #include "bflb_eflash_loader.h"
+#include "bflb_sec_trng.h"
 #include "bflb_uart.h"
 
 ATTR_NOCACHE_NOINIT_RAM_SECTION uint8_t g_malloc_buf[BFLB_BOOT2_XZ_MALLOC_BUF_SIZE];
@@ -239,5 +240,168 @@ void ATTR_TCM_SECTION bflb_sp_boot2_jump_entry(void)
     while (1) {
         /*use soft delay only */
         arch_delay_ms(100);
+    }
+}
+
+#if BFLB_SP_FAULT_INJECTION_ENABLE
+
+static int fih_int_validate(fih_ret value)
+{
+    if (value.val != (value.msk ^ _FIH_MASK_VALUE)) {
+        FIH_PANIC;
+    }
+
+    return 1;
+}
+
+static fih_ret fih_int_encode(int32_t value)
+{
+    fih_ret ret = FIH_INT_INIT(0);
+
+    ret.val = value;
+    ret.msk = value ^ _FIH_MASK_VALUE;
+
+    return ret;
+}
+
+int32_t fih_int_decode(fih_ret value)
+{
+    (void)fih_int_validate(value);
+    return value.val;
+}
+
+static int fih_int_equal(fih_ret left, fih_ret right)
+{
+    (void)fih_int_decode(left);
+    (void)fih_int_decode(right);
+
+    return ((left.val == right.val) && !(left.val != right.val) &&
+            (left.msk == right.msk) && !(left.msk != right.msk));
+}
+
+static int fih_int_not_equal(fih_ret left, fih_ret right)
+{
+    return !fih_int_equal(left, right);
+}
+
+fih_ret fih_ret_validate(fih_ret value)
+{
+    (void)fih_int_validate(value);
+    return value;
+}
+
+fih_ret fih_ret_encode_status(int32_t ret)
+{
+    if ((ret == 0) && !(ret != 0)) {
+        return FIH_SUCCESS;
+    }
+
+    return fih_int_encode(ret);
+}
+
+/****************************************************************************/ /**
+ * @brief  Get a randomized delay seed from the platform TRNG
+ *
+ * @return Random 32-bit value, or FIH_NEGATIVE_VALUE when TRNG read fails
+ *
+ *******************************************************************************/
+static uint32_t fih_delay_random(void)
+{
+    uint32_t delay = FIH_NEGATIVE_VALUE;
+
+    if (bflb_trng_readlen((uint8_t *)&delay, sizeof(delay)) != 0) {
+        return FIH_NEGATIVE_VALUE;
+    }
+
+    if (delay == FIH_NEGATIVE_VALUE) {
+        delay ^= _FIH_MASK_VALUE;
+    }
+
+    return delay;
+}
+
+/****************************************************************************/ /**
+ * @brief  Insert a randomized delay for FIH state checks
+ *
+ * @param  None
+ *
+ * @return 1 when the delay loop finishes successfully
+ *
+ *******************************************************************************/
+static int fih_delay(void)
+{
+    uint32_t i = 0;
+    volatile uint32_t delay = FIH_NEGATIVE_VALUE;
+    volatile uint32_t counter = 0;
+
+    delay = fih_delay_random();
+
+    if (delay == FIH_NEGATIVE_VALUE) {
+        FIH_PANIC;
+    }
+
+    delay &= 0xFF;
+
+    for (i = 0; i < delay; i++) {
+        counter++;
+    }
+
+    if (counter != delay) {
+        FIH_PANIC;
+    }
+
+    return 1;
+}
+
+void fih_call_prepare_ret(fih_ret *slot)
+{
+    fih_set_encoded(slot, FIH_FAILURE);
+    (void)fih_delay();
+}
+
+void fih_set_encoded(fih_ret *slot, fih_ret value)
+{
+    *slot = value;
+
+    if (fih_delay() && fih_int_not_equal(*slot, value)) {
+        FIH_PANIC;
+    }
+}
+
+int fih_eq_encoded(fih_ret left, fih_ret right)
+{
+    return (fih_int_equal(left, right) &&
+            fih_delay() &&
+            !fih_int_not_equal(right, left));
+}
+
+int fih_not_eq_encoded(fih_ret left, fih_ret right)
+{
+    return (fih_int_not_equal(left, right) ||
+            !fih_delay() ||
+            !fih_int_equal(right, left));
+}
+
+#else
+
+int32_t fih_int_decode(fih_ret value)
+{
+    return value;
+}
+
+fih_ret fih_ret_encode_status(int32_t ret)
+{
+    return ret;
+}
+
+#endif
+
+/****************************************************************************/ /**
+ * @brief  Stop boot flow when FIH state becomes inconsistent
+ *
+ *******************************************************************************/
+void fih_panic_loop(void)
+{
+    while (1) {
     }
 }

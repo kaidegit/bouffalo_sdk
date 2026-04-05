@@ -464,7 +464,7 @@ char hci_port[14];
 #endif
 static int hci_driver_open(void)
 {
-	int err;
+	int err = 0;
 
 #if !defined(BFLB_BLE)
 	u32_t err;
@@ -528,8 +528,10 @@ static int hci_driver_open(void)
 
 	BT_DBG("Success.");
 
-	return 0;
+	return err;
 
+#if defined(BFLB_BLE)
+#if defined(CONFIG_BT_HOST_HCI_TL) && !defined(CONFIG_BT_HOST_HCI)
 cleanup:
 #if (CONFIG_BLE_USING_DYNAMIC_RAM)
 	if (p_recv_fifo) {
@@ -538,6 +540,8 @@ cleanup:
 	}
 #endif
 	return err;
+#endif /* CONFIG_BT_HOST_HCI_TL && !CONFIG_BT_HOST_HCI */
+#endif /* BFLB_BLE */
 }
 
 void hci_driver_enque_recvq(struct net_buf *buf)

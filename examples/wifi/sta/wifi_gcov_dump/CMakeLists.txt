@@ -8,7 +8,7 @@ sdk_add_compile_definitions(-DCONFIG_CLI_CMD_ENABLE)
 # Link with gcov runtime to support macsw library coverage
 sdk_add_link_options(--coverage)
 
-# Wrap stdio functions to redirect to FatFS for GCOV data writing
+# Wrap stdio functions to redirect to LittleFS for GCOV data writing
 sdk_add_link_options(-Wl,--wrap=fopen)
 sdk_add_link_options(-Wl,--wrap=fclose)
 sdk_add_link_options(-Wl,--wrap=fwrite)
@@ -38,7 +38,7 @@ sdk_add_compile_definitions(-DCFG_IP_NAPT_TIMEOUT_MS_ICMP=\(5*2*1000\))
 endif()
 
 target_sources(app PRIVATE
-	           fatfs_show.c gcov_flush.c gcov_stubs.c)
+	           lfs_show.c lfs_gcov_flush.c lfs_gcov_stubs.c)
 
 sdk_add_include_directories(.)
 

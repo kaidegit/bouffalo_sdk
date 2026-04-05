@@ -635,6 +635,8 @@ static void rc32k_coarse_trim_task(void *pvParameters)
     // }else{
     //     /* set bl_lp 32k clock ready */
     //     printf("rc32k_coarse_trim: set lp_32k ready!\r\n");
+        bl_lp_rc32k_save_code(rc32k_code);
+
         bl_lp_set_32k_clock_ready(1);
     // }
 

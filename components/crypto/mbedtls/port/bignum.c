@@ -40,6 +40,10 @@
 #include "mbedtls/bignum.h"
 #ifdef CONFIG_MBEDTLS_V2
 #include "mbedtls/bn_mul.h"
+#else
+#include "bignum_core.h"
+#include "bignum_internal.h"
+#include "bn_mul.h"
 #endif
 #include "mbedtls/platform_util.h"
 #include "mbedtls/error.h"
@@ -57,8 +61,133 @@
 #define MPI_VALIDATE( cond )                                           \
     MBEDTLS_INTERNAL_VALIDATE( cond )
 #else
+#define MBEDTLS_INTERNAL_VALIDATE_RET( cond, ret )  do { } while( 0 )
+#define MBEDTLS_INTERNAL_VALIDATE( cond )           do { } while( 0 )
 #define MPI_VALIDATE_RET( cond )
 #define MPI_VALIDATE( cond )
+#endif
+
+#ifndef CONFIG_MBEDTLS_V2
+/*
+ * Mbed TLS v3 moved part of the constant-time and bignum helpers into
+ * separate internal modules. The hardware port keeps a forked bignum.c in
+ * order to expose mbedtls_mpi_exp_mod_original(), so add the missing v3
+ * helpers here instead of switching back to the upstream source layout.
+ */
+#if !defined(MULADDC_INIT)
+#define MULADDC_INIT MULADDC_X1_INIT
+#define MULADDC_CORE MULADDC_X1_CORE
+#define MULADDC_STOP MULADDC_X1_STOP
+#endif
+
+static inline signed short mbedtls_ct_mpi_sign_if( mbedtls_ct_condition_t cond,
+                                                   signed short sign1,
+                                                   signed short sign2 )
+{
+    return (signed short) mbedtls_ct_uint_if( cond, sign1 + 1, sign2 + 1 ) - 1;
+}
+
+int mbedtls_mpi_lt_mpi_ct( const mbedtls_mpi *X,
+                           const mbedtls_mpi *Y,
+                           unsigned *ret )
+{
+    mbedtls_ct_condition_t different_sign, X_is_negative, Y_is_negative, result;
+
+    if( X->n != Y->n )
+        return MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
+
+    X_is_negative = mbedtls_ct_bool( ( X->s & 2 ) >> 1 );
+    Y_is_negative = mbedtls_ct_bool( ( Y->s & 2 ) >> 1 );
+
+    different_sign = mbedtls_ct_bool_ne( X_is_negative, Y_is_negative );
+    result = mbedtls_ct_bool_and( different_sign, X_is_negative );
+
+    {
+        void * const p[2] = { X->p, Y->p };
+        size_t i = mbedtls_ct_size_if_else_0( X_is_negative, 1 );
+        mbedtls_ct_condition_t lt = mbedtls_mpi_core_lt_ct( p[i], p[i ^ 1], X->n );
+
+        result = mbedtls_ct_bool_or(
+            result,
+            mbedtls_ct_bool_and( mbedtls_ct_bool_not( different_sign ), lt ) );
+    }
+
+    *ret = mbedtls_ct_uint_if_else_0( result, 1 );
+
+    return 0;
+}
+
+#if defined(_MSC_VER) && defined(MBEDTLS_PLATFORM_IS_WINDOWS_ON_ARM64) && \
+    (_MSC_FULL_VER < 193131103)
+__declspec(noinline)
+#endif
+int mbedtls_mpi_safe_cond_assign( mbedtls_mpi *X,
+                                  const mbedtls_mpi *Y,
+                                  unsigned char assign )
+{
+    int ret = 0;
+
+    MBEDTLS_MPI_CHK( mbedtls_mpi_grow( X, Y->n ) );
+
+    {
+        mbedtls_ct_condition_t do_assign = mbedtls_ct_bool( assign );
+        mbedtls_ct_condition_t do_not_assign = mbedtls_ct_bool_not( do_assign );
+        size_t i;
+
+        X->s = mbedtls_ct_mpi_sign_if( do_assign, Y->s, X->s );
+        mbedtls_mpi_core_cond_assign( X->p, Y->p, Y->n, do_assign );
+
+        for( i = Y->n; i < X->n; i++ )
+            X->p[i] = mbedtls_ct_mpi_uint_if_else_0( do_not_assign, X->p[i] );
+    }
+
+cleanup:
+    return ret;
+}
+
+int mbedtls_mpi_safe_cond_swap( mbedtls_mpi *X,
+                                mbedtls_mpi *Y,
+                                unsigned char swap )
+{
+    int ret = 0;
+    int s;
+    mbedtls_ct_condition_t do_swap;
+
+    if( X == Y )
+        return 0;
+
+    do_swap = mbedtls_ct_bool( swap );
+
+    MBEDTLS_MPI_CHK( mbedtls_mpi_grow( X, Y->n ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_grow( Y, X->n ) );
+
+    s = X->s;
+    X->s = mbedtls_ct_mpi_sign_if( do_swap, Y->s, X->s );
+    Y->s = mbedtls_ct_mpi_sign_if( do_swap, s, Y->s );
+
+    mbedtls_mpi_core_cond_swap( X->p, Y->p, X->n, do_swap );
+
+cleanup:
+    return ret;
+}
+
+static unsigned mbedtls_ct_size_bool_eq( size_t x, size_t y )
+{
+    return mbedtls_ct_uint_if_else_0(
+        mbedtls_ct_uint_eq( (mbedtls_ct_uint_t) x, (mbedtls_ct_uint_t) y ), 1 );
+}
+
+static void mbedtls_ct_mpi_uint_cond_assign( size_t n,
+                                             mbedtls_mpi_uint *dest,
+                                             const mbedtls_mpi_uint *src,
+                                             unsigned char condition )
+{
+    mbedtls_ct_memcpy_if( mbedtls_ct_bool( condition ),
+                          (unsigned char *) dest,
+                          (const unsigned char *) src,
+                          NULL,
+                          n * sizeof( mbedtls_mpi_uint ) );
+}
 #endif
 
 #define ciL    (sizeof(mbedtls_mpi_uint))         /* chars in limb  */
@@ -2649,6 +2778,76 @@ cleanup:
 
     return( ret );
 }
+
+#ifndef CONFIG_MBEDTLS_V2
+/*
+ * The v3 RSA code expects a few newer bignum entry points. Reuse the legacy
+ * software implementations here so the hardware exp_mod override can plug into
+ * the existing port incrementally.
+ */
+extern int mbedtls_mpi_exp_mod( mbedtls_mpi *X, const mbedtls_mpi *A,
+                                const mbedtls_mpi *E, const mbedtls_mpi *N,
+                                mbedtls_mpi *prec_RR );
+
+int mbedtls_mpi_exp_mod_unsafe( mbedtls_mpi *X, const mbedtls_mpi *A,
+                                const mbedtls_mpi *E, const mbedtls_mpi *N,
+                                mbedtls_mpi *prec_RR )
+{
+    return mbedtls_mpi_exp_mod( X, A, E, N, prec_RR );
+}
+
+int mbedtls_mpi_gcd_modinv_odd( mbedtls_mpi *G,
+                                mbedtls_mpi *I,
+                                const mbedtls_mpi *A,
+                                const mbedtls_mpi *N )
+{
+    int ret = 0;
+    mbedtls_mpi local_g;
+    mbedtls_mpi *g = G;
+
+    if( mbedtls_mpi_cmp_int( A, 0 ) < 0 ||
+        mbedtls_mpi_cmp_mpi( A, N ) > 0 ||
+        mbedtls_mpi_get_bit( N, 0 ) != 1 ||
+        ( I != NULL && mbedtls_mpi_cmp_int( N, 1 ) == 0 ) )
+        return MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
+
+    mbedtls_mpi_init( &local_g );
+
+    if( g == NULL )
+        g = &local_g;
+
+    MBEDTLS_MPI_CHK( mbedtls_mpi_gcd( g, A, N ) );
+
+    if( I != NULL )
+    {
+        if( mbedtls_mpi_cmp_int( g, 1 ) == 0 )
+            MBEDTLS_MPI_CHK( mbedtls_mpi_inv_mod( I, A, N ) );
+        else
+            MBEDTLS_MPI_CHK( mbedtls_mpi_lset( I, 0 ) );
+    }
+
+cleanup:
+    mbedtls_mpi_free( &local_g );
+    return ret;
+}
+
+int mbedtls_mpi_inv_mod_odd( mbedtls_mpi *X,
+                             const mbedtls_mpi *A,
+                             const mbedtls_mpi *N )
+{
+    if( mbedtls_mpi_get_bit( N, 0 ) != 1 )
+        return MBEDTLS_ERR_MPI_BAD_INPUT_DATA;
+
+    return mbedtls_mpi_inv_mod( X, A, N );
+}
+
+int mbedtls_mpi_inv_mod_even_in_range( mbedtls_mpi *X,
+                                       const mbedtls_mpi *A,
+                                       const mbedtls_mpi *N )
+{
+    return mbedtls_mpi_inv_mod( X, A, N );
+}
+#endif
 
 #if defined(MBEDTLS_GENPRIME)
 

@@ -6,7 +6,8 @@
 #include "board_gpio.h"
 #include "bflb_gpio.h"
 #include "bl616cl_glb.h"
-
+#include "bflb_audac.h"
+#include "bflb_auadc.h"
 void board_uartx_gpio_init(void)
 {
     struct bflb_device_s *gpio;
@@ -281,6 +282,34 @@ void board_audio_pll_config_for_rate(unsigned int samplerate_hz)
     }
 }
 
+void board_auadc_gpio_init(void)
+{
+    struct bflb_device_s *gpio;
+
+    gpio = bflb_device_get_by_name("gpio");
+#if defined(CONFIG_AUDIO_MIC_PDM_MODE) || !AUADC_ANALOG_ADC_SUPPORT
+    /* data */
+    bflb_gpio_init(gpio, GPIO_PIN_20, GPIO_FUNC_PDM | GPIO_ALTERNATE | GPIO_FLOAT | GPIO_SMT_EN | GPIO_DRV_2);
+    /* clk */
+    bflb_gpio_init(gpio, GPIO_PIN_21, GPIO_FUNC_PDM | GPIO_ALTERNATE | GPIO_FLOAT | GPIO_SMT_EN | GPIO_DRV_2);
+
+#else
+#error "Only PDM mic mode is supported on BL616CL, please check your config"
+#endif
+
+}
+
+void board_audac_gpio_init(void)
+{
+    struct bflb_device_s *gpio;
+
+    gpio = bflb_device_get_by_name("gpio");
+
+    /* audac pwm output mode */
+    bflb_gpio_init(gpio, GPIO_PIN_12, GPIO_FUNC_AUDAC_PWM | GPIO_ALTERNATE | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_2);
+    bflb_gpio_init(gpio, GPIO_PIN_13, GPIO_FUNC_AUDAC_PWM | GPIO_ALTERNATE | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_2);
+
+}
 void board_i2s_codec_gpio_init(void)
 {
     struct bflb_device_s *gpio;

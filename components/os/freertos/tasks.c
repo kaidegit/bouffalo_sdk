@@ -5664,7 +5664,6 @@ static void prvAddCurrentTaskToDelayedList( TickType_t xTicksToWait,
 #endif /* portUSING_MPU_WRAPPERS */
 /*-----------------------------------------------------------*/
 
-#if (config_CUSTOM_TICKLESS == 2)
 /* Foreach all task handler */
 static void prvForeachTaskWithinSingleList(List_t *pxList, foreach_handler_cb cb, eTaskState state)
 {
@@ -5685,11 +5684,13 @@ static void prvForeachTaskWithinSingleList(List_t *pxList, foreach_handler_cb cb
     }
 }
 
+#if (config_CUSTOM_TICKLESS == 2)
 uint8_t * pcTaskGetVendorFlags(TaskHandle_t tsk)
 {
     configASSERT(tsk != NULL);
     return &(((TCB_t*)tsk)->vendor_flags);
 }
+#endif
 
 void vTaskHandleForeachFromISR(foreach_handler_cb cb)
 {
@@ -5720,7 +5721,6 @@ void vTaskHandleForeachFromISR(foreach_handler_cb cb)
 
     }
 }
-#endif
 
 /* Code below here allows additional code to be inserted into this source file,
  * especially where access to file scope functions and data is needed (for example

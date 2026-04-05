@@ -389,9 +389,9 @@ else()
     sdk_library_add_sources(${PROJECT_SOURCE_DIR}/src/core/${source_file})
   endforeach()
 
-  sdk_add_private_compile_definitions(-Dtcp_input=tcp_input_ot)
-  sdk_add_private_compile_definitions(-Dtcp_output=tcp_output_ot)
-  sdk_add_private_compile_definitions(-Dtcp_close=tcp_close_ot)
+  sdk_add_private_compile_definitions(-Dtcp_input=ot_tcp_input)
+  sdk_add_private_compile_definitions(-Dtcp_output=ot_tcp_output)
+  sdk_add_private_compile_definitions(-Dtcp_close=ot_tcp_close)
 
   sdk_add_private_include_directories(${PROJECT_SOURCE_DIR}/third_party/tcplp)
   foreach(source_file ${TCPLP_SOURCES})

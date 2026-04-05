@@ -3291,7 +3291,7 @@ int bt_conn_deinit(void)
 {
 	bt_l2cap_deinit();
 	if (p_free_tx) {
-		k_queue_free((struct k_fifo *)p_free_tx);
+		k_queue_free(&p_free_tx->_queue);
 	}
 	if (g_conn_mem_pool) {
 		k_free(g_conn_mem_pool);

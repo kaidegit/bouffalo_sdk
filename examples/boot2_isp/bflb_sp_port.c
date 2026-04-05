@@ -36,7 +36,6 @@
 
 #include "stdio.h"
 #include "stdint.h"
-#include "string.h"
 #include "stdarg.h"
 #include "bflb_sp_port.h"
 #include "bflb_sp_bootinfo.h"
@@ -356,7 +355,7 @@ void bflb_sp_boot2_printf(const char *format, ...)
 {
     va_list arg_list;
     char output[128];
-    int pos = 0;
+    uint32_t pos = 0;
 
     va_start(arg_list, format);
 
@@ -431,7 +430,6 @@ void bflb_sp_boot2_printf(const char *format, ...)
         }
         format++;
     }
-    output[pos] = '\0';
 
     va_end(arg_list);
 
@@ -444,14 +442,14 @@ void bflb_sp_boot2_printf(const char *format, ...)
         return;
     }
 
-    bflb_uart_put_block(uartx, (uint8_t *)output, strlen(output));
+    bflb_uart_put_block(uartx, (uint8_t *)output, pos);
 
 }
 
 void bflb_boot2_release_dump_log(void)
 {
     char *str_log = "Dump log...\r\n";
-    bflb_uart_put_block(uartx, (uint8_t *)str_log, strlen(str_log));
+    bflb_uart_put_block(uartx, (uint8_t *)str_log, 13);
     if (g_cur_pos > 0) {
         bflb_uart_put_block(uartx, g_log_out_buf, g_cur_pos);
     }

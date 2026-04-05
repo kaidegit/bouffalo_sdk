@@ -50,6 +50,10 @@
 extern "C" {
 #endif
 
+#ifndef LWIP_DNS_SERVER
+#define LWIP_DNS_SERVER 0
+#endif
+
 /** DNS timer period */
 #if LWIP_DNS_SERVER
 #define DNS_TMR_INTERVAL          500

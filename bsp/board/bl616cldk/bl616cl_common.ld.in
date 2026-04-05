@@ -53,7 +53,7 @@ __EM_SIZE = DEFINED(btble_controller_init) ? 32K : 0K;
 #define SECTION_BSS_PROLOGUE(name, attr, n) __##name##_start__ = ABSOLUTE(ADDR(name)); __##name##_end__ = ABSOLUTE(ADDR(name) + SIZEOF(name)); name attr:
 
 #ifdef CONFIG_LPAPP
-__LPFW_SIZE = 70K; /* BL616CL uses 70K instead of 30K */
+__LPFW_SIZE = 28K;
 /* Link stage feature control */
 PROVIDE( __macsw_conf_bl_wifi_ps_enable = 1 );
 PROVIDE( __macsw_conf_plat_dma_enable = 0 );

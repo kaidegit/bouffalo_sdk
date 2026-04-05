@@ -8,6 +8,27 @@
 
 volatile lp_gpio_cfg_type lp_wake_io_cfg;
 
+static void app_print_wakeup_source(void)
+{
+    uint8_t wakeup_source_found = 0;
+
+    for (uint8_t i = HBN_INT_GPIO0; i <= HBN_INT_GPIO5; i++) {
+        if (SET == HBN_Get_INT_State(i)) {
+            printf("gpio_%d wakeup hbn\r\n", i);
+            wakeup_source_found = 1;
+            HBN_Clear_IRQ(i);
+        }
+    }
+    if (SET == HBN_Get_INT_State(HBN_INT_RTC)) {
+        printf("[ERR]hbn wakeup by RTC\r\n");
+        wakeup_source_found = 1;
+        HBN_Clear_IRQ(HBN_INT_RTC);
+    }
+    if (!wakeup_source_found) {
+        printf("first power on\r\n");
+    }
+}
+
 int main(void)
 {
     int ch;
@@ -15,6 +36,7 @@ int main(void)
 
     board_init();
     HBN_32K_Sel(HBN_32K_RC);
+    app_print_wakeup_source();
     for (uint8_t i = 0; i < GPIO_PIN_MAX; i++) {
         pm_set_gpio_int_mask(i, MASK);
     }
@@ -88,6 +110,8 @@ int hbn_io_wakeup_test(int argc, char **argv)
         printf("[ERR]test_io >= %d\r\n", GPIO_PIN_MAX);
         return 0;
     }
+    printf("GPIO Ready\r\n");
+    arch_delay_us(500);
     pm_lowpower_gpio_cfg((lp_gpio_cfg_type *)&lp_wake_io_cfg);
 
     switch (hbn_mode) {

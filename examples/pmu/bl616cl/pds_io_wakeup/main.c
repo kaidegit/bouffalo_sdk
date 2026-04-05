@@ -163,6 +163,8 @@ int pds_io_wakeup_test(int argc, char **argv)
         printf("[ERR]test_io >= %d\r\n", GPIO_PIN_MAX);
         return 0;
     }
+    printf("GPIO Ready\r\n");
+    arch_delay_us(500);
     pm_lowpower_gpio_cfg((lp_gpio_cfg_type *)&lp_wake_io_cfg);
     PDS_Set_All_GPIO_Pad_IntClr();
 

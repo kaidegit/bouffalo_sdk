@@ -7,12 +7,9 @@
 #include <bflb_flash.h>
 
 #include <FreeRTOS.h>
-#include "mm.h"
-
-extern uint32_t __HeapBase;
-extern uint32_t __HeapLimit;
 
 extern void log_start(void);
+extern void ram_heap_init(void);
 
 static void system_clock_ncp_init(void)
 {
@@ -55,7 +52,7 @@ static void console_ncp_init()
     bflb_gpio_uart_init(gpio, GPIO_PIN_15, GPIO_UART_FUNC_UART0_RX);
 
     struct bflb_uart_config_s cfg;
-    cfg.baudrate = 460800;
+    cfg.baudrate = CONFIG_CONSOLE_UART_BAUDRATE;
     cfg.data_bits = UART_DATA_BITS_8;
     cfg.stop_bits = UART_STOP_BITS_1;
     cfg.parity = UART_PARITY_NONE;
@@ -84,11 +81,7 @@ void board_ncp_init(void)
 
     console_ncp_init();
 
-    /* ram heap init */
-    mem_manager_init();
-    /* ocram heap init */
-    heap_len = ((size_t)&__HeapLimit - (size_t)&__HeapBase);
-    mm_register_heap(MM_HEAP_OCRAM_0, "OCRAM", MM_ALLOCATOR_TLSF, &__HeapBase, heap_len);
+    ram_heap_init();
 
     log_start();
 

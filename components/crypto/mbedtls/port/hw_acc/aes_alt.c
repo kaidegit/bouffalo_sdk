@@ -50,8 +50,18 @@
 #define AES_VALIDATE( cond )        \
     MBEDTLS_INTERNAL_VALIDATE( cond )
 #else
-#define AES_VALIDATE_RET( cond )
-#define AES_VALIDATE( cond )
+#define AES_VALIDATE_RET( cond )                                \
+    do                                                          \
+    {                                                           \
+        if( !( cond ) )                                         \
+            return( MBEDTLS_ERR_AES_BAD_INPUT_DATA );           \
+    } while( 0 )
+#define AES_VALIDATE( cond )                                    \
+    do                                                          \
+    {                                                           \
+        if( !( cond ) )                                         \
+            return;                                             \
+    } while( 0 )
 #endif
 
 #if defined(MBEDTLS_PADLOCK_C) &&                      \
@@ -63,6 +73,60 @@ static ATTR_NOCACHE_NOINIT_RAM_SECTION uint8_t ecb_enc_buf[16];
 static ATTR_NOCACHE_NOINIT_RAM_SECTION uint8_t ecb_dec_buf[16];
 
 static ATTR_NOCACHE_NOINIT_RAM_SECTION struct bflb_aes_link_s link_ctx_temp;
+
+static void bflb_aes_xor( unsigned char *out,
+                          const unsigned char *a,
+                          const unsigned char *b,
+                          size_t len )
+{
+    size_t i;
+
+    for( i = 0; i < len; i++ )
+    {
+        out[i] = a[i] ^ b[i];
+    }
+}
+
+static void bflb_aes_ctr_increment( unsigned char counter[16] )
+{
+    size_t i;
+
+    for( i = 16; i > 0; i-- )
+    {
+        counter[i - 1]++;
+        if( counter[i - 1] != 0 )
+            break;
+    }
+}
+
+static int bflb_aes_link_crypt_block( mbedtls_aes_context *ctx,
+                                      uint8_t aes_mode,
+                                      const unsigned char iv[16],
+                                      const unsigned char input[16],
+                                      unsigned char output[16] )
+{
+    int ret;
+
+    memcpy( ecb_enc_buf, input, 16 );
+
+    memcpy( &link_ctx_temp, &ctx->link_ctx, sizeof( struct bflb_aes_link_s ) );
+    link_ctx_temp.aes_mode = aes_mode;
+    link_ctx_temp.aes_newiv_dis = 0;
+
+    if( iv != NULL )
+        memcpy( &link_ctx_temp.aes_iv0, iv, 16 );
+    else
+        memset( &link_ctx_temp.aes_iv0, 0, 16 );
+
+    ret = bflb_aes_link_update( ctx->aes, (uint32_t) &link_ctx_temp,
+                                ecb_enc_buf, ecb_dec_buf, 16 );
+    if( ret != 0 )
+        return( MBEDTLS_ERR_PLATFORM_HW_ACCEL_FAILED );
+
+    memcpy( output, ecb_dec_buf, 16 );
+
+    return( 0 );
+}
 
 void mbedtls_aes_init( mbedtls_aes_context *ctx )
 {
@@ -131,7 +195,7 @@ int mbedtls_aes_setkey_enc( mbedtls_aes_context *ctx, const unsigned char *key,
     }
     else
     {
-        return -1;
+        return( MBEDTLS_ERR_AES_INVALID_KEY_LENGTH );
     }
 
     memcpy(&ctx->link_ctx.aes_key0, key, keybits / 8);
@@ -163,7 +227,7 @@ int mbedtls_aes_setkey_dec( mbedtls_aes_context *ctx, const unsigned char *key,
     }
     else
     {
-        return -1;
+        return( MBEDTLS_ERR_AES_INVALID_KEY_LENGTH );
     }
 
     memcpy(&ctx->link_ctx.aes_key0, key, keybits / 8);
@@ -403,7 +467,8 @@ int mbedtls_aes_crypt_cbc( mbedtls_aes_context *ctx,
                     const unsigned char *input,
                     unsigned char *output )
 {
-    //int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    int ret = 0;
+    unsigned char temp[16];
 
     AES_VALIDATE_RET( ctx != NULL );
     AES_VALIDATE_RET( mode == MBEDTLS_AES_ENCRYPT ||
@@ -414,6 +479,9 @@ int mbedtls_aes_crypt_cbc( mbedtls_aes_context *ctx,
 
     if( length % 16 )
         return( MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH );
+
+    if( length == 0 )
+        return( 0 );
 
 #if defined(MBEDTLS_PADLOCK_C) && defined(MBEDTLS_HAVE_X86)
     if( aes_padlock_ace )
@@ -426,27 +494,45 @@ int mbedtls_aes_crypt_cbc( mbedtls_aes_context *ctx,
         //
     }
 #endif
-    ctx->link_ctx.aes_mode = AES_MODE_CBC;
-    memcpy(&ctx->link_ctx.aes_iv0, iv, 16);
-
-    bflb_l1c_dcache_clean_invalidate_range((void *)input, length);
-    bflb_l1c_dcache_clean_invalidate_range((void *)output, length);
 
     bflb_sec_aes_mutex_take();
+
     if( mode == MBEDTLS_AES_DECRYPT )
     {
-        memcpy(&link_ctx_temp, &ctx->link_ctx, sizeof(struct bflb_aes_link_s));
-        bflb_aes_link_update(ctx->aes, (uint32_t)&link_ctx_temp, input, output, length);
-        memcpy(&ctx->link_ctx, &link_ctx_temp, sizeof(struct bflb_aes_link_s));
+        while( length > 0 )
+        {
+            memcpy( temp, input, 16 );
+
+            ret = bflb_aes_link_crypt_block( ctx, AES_MODE_CBC, iv, input, output );
+            if( ret != 0 )
+                goto exit;
+
+            memcpy( iv, temp, 16 );
+
+            input  += 16;
+            output += 16;
+            length -= 16;
+        }
     }
     else
     {
-        memcpy(&link_ctx_temp, &ctx->link_ctx, sizeof(struct bflb_aes_link_s));
-        bflb_aes_link_update(ctx->aes, (uint32_t)&link_ctx_temp, input, output, length);
-        memcpy(&ctx->link_ctx, &link_ctx_temp, sizeof(struct bflb_aes_link_s));
+        while( length > 0 )
+        {
+            ret = bflb_aes_link_crypt_block( ctx, AES_MODE_CBC, iv, input, output );
+            if( ret != 0 )
+                goto exit;
+
+            memcpy( iv, output, 16 );
+
+            input  += 16;
+            output += 16;
+            length -= 16;
+        }
     }
+
+exit:
     bflb_sec_aes_mutex_give();
-    return( 0 );
+    return( ret );
 }
 #endif /* MBEDTLS_CIPHER_MODE_CBC */
 
@@ -759,7 +845,10 @@ int mbedtls_aes_crypt_ctr( mbedtls_aes_context *ctx,
                        const unsigned char *input,
                        unsigned char *output )
 {
-    //int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    int ret = 0;
+    size_t offset;
+    size_t n;
+    const unsigned char zero_block[16] = { 0 };
 
     AES_VALIDATE_RET( ctx != NULL );
     AES_VALIDATE_RET( nc_off != NULL );
@@ -768,21 +857,42 @@ int mbedtls_aes_crypt_ctr( mbedtls_aes_context *ctx,
     AES_VALIDATE_RET( input != NULL );
     AES_VALIDATE_RET( output != NULL );
 
-    if( length % 16 )
-        return( MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH );
+    offset = *nc_off;
 
-    ctx->link_ctx.aes_mode = AES_MODE_CTR;
-    memcpy(&ctx->link_ctx.aes_iv0, nonce_counter, 16);
-
-    bflb_l1c_dcache_clean_invalidate_range((void *)input, length);
-    bflb_l1c_dcache_clean_invalidate_range((void *)output, length);
+    if( offset > 0x0F )
+        return( MBEDTLS_ERR_AES_BAD_INPUT_DATA );
 
     bflb_sec_aes_mutex_take();
-    memcpy(&link_ctx_temp, &ctx->link_ctx, sizeof(struct bflb_aes_link_s));
-    bflb_aes_link_update(ctx->aes, (uint32_t)&link_ctx_temp, input, output, length);
-    memcpy(&ctx->link_ctx, &link_ctx_temp, sizeof(struct bflb_aes_link_s));
+
+    while( length > 0 )
+    {
+        if( offset == 0 )
+        {
+            ret = bflb_aes_link_crypt_block( ctx, AES_MODE_CTR, nonce_counter,
+                                             zero_block, stream_block );
+            if( ret != 0 )
+                goto exit;
+
+            bflb_aes_ctr_increment( nonce_counter );
+        }
+
+        n = 16 - offset;
+        if( n > length )
+            n = length;
+
+        bflb_aes_xor( output, input, stream_block + offset, n );
+
+        input += n;
+        output += n;
+        length -= n;
+        offset = ( offset + n ) & 0x0F;
+    }
+
+    *nc_off = offset;
+
+exit:
     bflb_sec_aes_mutex_give();
-    return( 0 );
+    return( ret );
 }
 #endif /* MBEDTLS_CIPHER_MODE_CTR */
 

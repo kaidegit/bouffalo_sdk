@@ -141,6 +141,34 @@ static bool get_task_context_from_tcb(TaskHandle_t handle, uint32_t *sp, uint32_
     return true;
 }
 
+static void backtrace_task_from_isr_cb(TaskHandle_t handle, eTaskState state)
+{
+    (void)state;
+    uint32_t addrs[16];
+    uint32_t sp = 0;
+    uint32_t pc = 0;
+    int count = 0;
+    bool is_cur = (handle == xTaskGetCurrentTaskHandle());
+    const char *name = pcTaskGetName(handle);
+
+    if (name == NULL) {
+        name = "<noname>";
+    }
+
+    if (!get_task_context_from_tcb(handle, &sp, &pc)) {
+        printf("%s%s: [failed to get context]\r\n", name, is_cur ? " *" : "");
+        return;
+    }
+
+    count = backtrace_unwind(pc, sp, addrs, 16);
+
+    printf("%s%s: ", name, is_cur ? " *" : "");
+    for (int i = 0; i < count; i++) {
+        printf("0x%08x ", addrs[i]);
+    }
+    printf("\r\n");
+}
+
 /*============================================================================
  * FreeRTOS Integration
  *============================================================================*/
@@ -230,6 +258,13 @@ void backtrace_tasks_all(void)
     printf("==========================================\r\n\r\n");
 
     taskEXIT_CRITICAL();
+}
+
+void backtrace_tasks_all_isr(void)
+{
+    printf("\r\n========== Backtrace All Tasks (ISR) ==========\r\n");
+    vTaskHandleForeachFromISR(backtrace_task_from_isr_cb);
+    printf("================================================\r\n\r\n");
 }
 
 int backtrace_task(void *handle, uint32_t *addrs, int max)

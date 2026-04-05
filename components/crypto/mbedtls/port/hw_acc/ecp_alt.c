@@ -2163,6 +2163,20 @@ int mbedtls_ecp_muladd_restartable_impl(
     MBEDTLS_MPI_CHK( mbedtls_ecp_mul_shortcuts( grp, pmP, m, P, NULL ) );
     MBEDTLS_MPI_CHK( mbedtls_ecp_mul_shortcuts( grp, pR,  n, Q, NULL ) );
 
+    /*
+     * The mixed-add helper below assumes the Jacobian source is not the
+     * point-at-infinity. This matters for ECDSA verify when u1 or u2 is 0,
+     * because then one side of u1 * G + u2 * Q is exactly infinity.
+     */
+    if( mbedtls_ecp_is_zero( pmP ) )
+        goto cleanup;
+
+    if( mbedtls_ecp_is_zero( pR ) )
+    {
+        MBEDTLS_MPI_CHK( mbedtls_ecp_copy( pR, pmP ) );
+        goto cleanup;
+    }
+
     if( ( ret = ecp_init_swst( grp, &op_sz, &op_ws, &s ) ) )
         goto cleanup;
 
@@ -2656,6 +2670,40 @@ cleanup:
     return( ret );
 }
 
+#ifndef CONFIG_MBEDTLS_V2
+int mbedtls_ecp_write_key_ext( const mbedtls_ecp_keypair *key,
+                               size_t *olen, unsigned char *buf, size_t buflen )
+{
+    size_t len;
+
+    ECP_VALIDATE_RET( key != NULL );
+    ECP_VALIDATE_RET( olen != NULL );
+    ECP_VALIDATE_RET( buf != NULL );
+
+    len = ( key->grp.nbits + 7 ) / 8;
+    if( len > buflen )
+    {
+        *olen = 0;
+        return MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL;
+    }
+    *olen = len;
+
+    if( key->d.n == 0 )
+        return MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+
+#if defined(MBEDTLS_ECP_MONTGOMERY_ENABLED)
+    if( mbedtls_ecp_get_type( &key->grp ) == MBEDTLS_ECP_TYPE_MONTGOMERY )
+        return mbedtls_mpi_write_binary_le( &key->d, buf, len );
+#endif
+
+#if defined(MBEDTLS_ECP_SHORT_WEIERSTRASS_ENABLED)
+    if( mbedtls_ecp_get_type( &key->grp ) == MBEDTLS_ECP_TYPE_SHORT_WEIERSTRASS )
+        return mbedtls_mpi_write_binary( &key->d, buf, len );
+#endif
+
+    return MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+}
+#endif
 
 /*
  * Check a public-private key pair

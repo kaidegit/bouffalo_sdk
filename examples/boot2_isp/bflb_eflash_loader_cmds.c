@@ -626,6 +626,7 @@ static int32_t ATTR_TCM_SECTION bflb_eflash_loader_cmd_xip_readSha_flash(uint16_
 {
     int32_t ret = BFLB_EFLASH_LOADER_SUCCESS;
     uint32_t startaddr, read_len;
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
     //SEC_Eng_SHA256_Ctx sha_ctx;
     //SEC_ENG_SHA_ID_Type shaId = SEC_ENG_SHA_ID0;
     uint16_t sha_len = 32;
@@ -644,13 +645,13 @@ static int32_t ATTR_TCM_SECTION bflb_eflash_loader_cmd_xip_readSha_flash(uint16_
 
         while (read_len > 0) {
             if (read_len > BFLB_EFLASH_LOADER_READBUF_SIZE) {
-                bflb_sp_mediaboot_read(startaddr, g_sha_in_buf, BFLB_EFLASH_LOADER_READBUF_SIZE);
+                FIH_CALL(bflb_sp_mediaboot_read, fih_rc, startaddr, g_sha_in_buf, BFLB_EFLASH_LOADER_READBUF_SIZE);
                 /*cal sha here*/
                 bflb_sha256_update(sha, &ctx_sha256, g_sha_in_buf, BFLB_EFLASH_LOADER_READBUF_SIZE);
                 read_len -= BFLB_EFLASH_LOADER_READBUF_SIZE;
                 startaddr += BFLB_EFLASH_LOADER_READBUF_SIZE;
             } else {
-                bflb_sp_mediaboot_read(startaddr, g_sha_in_buf, read_len);
+                FIH_CALL(bflb_sp_mediaboot_read, fih_rc, startaddr, g_sha_in_buf, read_len);
                 /*cal sha here*/
                 bflb_sha256_update(sha, &ctx_sha256, g_sha_in_buf, read_len);
                 read_len -= read_len;

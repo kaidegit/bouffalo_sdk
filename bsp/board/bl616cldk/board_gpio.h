@@ -44,6 +44,8 @@ void board_pec_spi_gpio_init(void);
 #define PEC_UART_RX_PIN  GPIO_PIN_9
 void board_pec_uart_gpio_init(void);
 void board_audio_pll_config_for_rate(unsigned int samplerate_hz);
+void board_audac_gpio_init(void);
+void board_auadc_gpio_init(void);
 void board_i2s_codec_gpio_init(void);
 
 #if defined(CONFIG_BSP_LCD)

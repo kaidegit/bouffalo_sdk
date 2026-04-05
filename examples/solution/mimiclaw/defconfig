@@ -26,7 +26,7 @@ CONFIG_FATFS_SDH_SDCARD =y
 CONFIG_BSP_SDH_SD =y
 
 # Use software ECC for broader TLS curve compatibility (wss public servers).
-CONFIG_MBEDTLS_ECC_USE_HW =n
+CONFIG_MBEDTLS_ECC_USE_HW =y
 
 # Broaden ECP curve support for public WSS endpoints.
 # Base wifi defconfig enables only secp256r1.

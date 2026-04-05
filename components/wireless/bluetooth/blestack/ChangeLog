@@ -1,4 +1,7 @@
 # Changes
+## 2026-04-01
+1.[blestack] Add support for setting BLE static random address.
+
 ## 2026-03-12
 1. [blestack] Refactor tinycrypt header include paths.
 

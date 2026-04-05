@@ -395,12 +395,15 @@ extern void wifi_scan_cmd(int argc, char **argv);
 extern void wifi_info_cmd(int argc, char **argv);
 extern void wifi_sta_autoconnect_enable_cmd(int argc, char **argv);
 extern void wifi_sta_autoconnect_disable_cmd(int argc, char **argv);
+extern void wifi_country_code_get_cmd(int argc, char **argv);
 extern void wifi_country_code_set_cmd(int argc, char **argv);
 extern void wifi_ap_start_cmd(int argc, char **argv);
 extern void wifi_ap_stop_cmd(int argc, char **argv);
 extern void wifi_sta_list_cmd(int argc, char **argv);
 extern void wifi_sta_ps_enter_cmd(int argc, char **argv);
 extern void wifi_sta_ps_exit_cmd(int argc, char **argv);
+extern void wifi_sta_info_cmd(int argc, char **argv);
+extern void set_ipv4_cmd(int argc, char **argv);
 
 /* CLI command exports - automatically registered when shell component is enabled */
 SHELL_CMD_EXPORT_ALIAS(wifi_connect_cmd, wifi_sta_connect, wifi station connect);
@@ -409,11 +412,14 @@ SHELL_CMD_EXPORT_ALIAS(wifi_scan_cmd, wifi_scan, wifi scan);
 SHELL_CMD_EXPORT_ALIAS(wifi_info_cmd, wifi_info, wifi info);
 SHELL_CMD_EXPORT_ALIAS(wifi_sta_autoconnect_enable_cmd, wifi_sta_autoconnect_enable, wifi sta enable autoconnect);
 SHELL_CMD_EXPORT_ALIAS(wifi_sta_autoconnect_disable_cmd, wifi_sta_autoconnect_disable, wifi sta disable autoconnect);
+SHELL_CMD_EXPORT_ALIAS(wifi_country_code_get_cmd, wifi_country_code_get, wifi get country code);
 SHELL_CMD_EXPORT_ALIAS(wifi_country_code_set_cmd, wifi_country_code_set, wifi set country code);
 SHELL_CMD_EXPORT_ALIAS(wifi_ap_start_cmd, wifi_ap_start, wifi ap start);
 SHELL_CMD_EXPORT_ALIAS(wifi_ap_stop_cmd, wifi_ap_stop, wifi ap stop);
 SHELL_CMD_EXPORT_ALIAS(wifi_sta_list_cmd, wifi_sta_list, wifi ap sta list);
 SHELL_CMD_EXPORT_ALIAS(wifi_sta_ps_enter_cmd, wifi_sta_ps_enter, wifi sta enter ps mode);
 SHELL_CMD_EXPORT_ALIAS(wifi_sta_ps_exit_cmd, wifi_sta_ps_exit, wifi sta exit ps mode);
+SHELL_CMD_EXPORT_ALIAS(wifi_sta_info_cmd, wifi_sta_info, show wifi sta info);
+SHELL_CMD_EXPORT_ALIAS(set_ipv4_cmd, set_ipv4, set sta netif static ipv4);
 
 #endif /* CONFIG_SHELL */

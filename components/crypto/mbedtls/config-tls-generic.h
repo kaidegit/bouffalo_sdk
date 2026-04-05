@@ -259,8 +259,16 @@
 #define MBEDTLS_CIPHER_MODE_CBC
 #endif
 
+#if defined(CONFIG_MBEDTLS_CIPHER_MODE_CFB_ENABLED)
+#define MBEDTLS_CIPHER_MODE_CFB
+#endif
+
 #if defined(CONFIG_MBEDTLS_CIPHER_MODE_CTR_ENABLED)
 #define MBEDTLS_CIPHER_MODE_CTR
+#endif
+
+#if defined(CONFIG_MBEDTLS_CIPHER_MODE_OFB_ENABLED)
+#define MBEDTLS_CIPHER_MODE_OFB
 #endif
 
 /* Supported elliptic curve libraries */
@@ -367,6 +375,10 @@
 
 #if defined(CONFIG_MBEDTLS_SHA512)
 #define MBEDTLS_SHA512_C
+#endif
+
+#if defined(CONFIG_MBEDTLS_SHA3)
+#define MBEDTLS_SHA3_C
 #endif
 
 #if defined(CONFIG_MBEDTLS_POLY1305)

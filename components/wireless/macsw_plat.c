@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "macsw.h"
 
@@ -114,6 +115,47 @@ void wifi_syslog(int priority, const char *fmt, ...)
 
     va_end(args);
 }
+
+#if WL_BB_TPC
+void bl_tpc_update_power_table(int8_t *power_table)
+{
+    struct wl_cfg_t *wl_cfg;
+
+#if defined(WL_API_RMEM_EN) && WL_API_RMEM_EN
+    wl_cfg = wl_cfg_get((uint8_t *)WL_API_RMEM_ADDR);
+#else
+    wl_cfg = wl_cfg_get();
+#endif
+
+    memcpy(&wl_cfg->param.pwrtarget, power_table, sizeof(struct wl_param_pwrtarget_t));
+
+    wl_wlan_power_table_update();
+}
+
+void bl_tpc_power_table_get(int8_t *power_table)
+{
+    struct wl_cfg_t *wl_cfg;
+
+#if defined(WL_API_RMEM_EN) && WL_API_RMEM_EN
+    wl_cfg = wl_cfg_get((uint8_t *)WL_API_RMEM_ADDR);
+#else
+    wl_cfg = wl_cfg_get();
+#endif
+
+    memcpy(power_table, &wl_cfg->param.pwrtarget, sizeof(struct wl_param_pwrtarget_t));
+}
+#else
+
+void bl_tpc_update_power_table(int8_t *power_table)
+{
+    return;
+}
+
+void bl_tpc_power_table_get(int8_t *power_table)
+{
+    return;
+}
+#endif
 
 #ifdef CFG_BL_WIFI_PS_ENABLE
 int8_t hal_macsw_lp_rssi_restore(void)

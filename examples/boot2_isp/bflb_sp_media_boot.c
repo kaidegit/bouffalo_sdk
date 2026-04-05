@@ -57,7 +57,7 @@ uint32_t g_boot2_parse_xz_image_status = 0;
  * @return BL_Err_Type
  *
 *******************************************************************************/
-static int32_t bflb_sp_mediaboot_cal_hash(uint32_t start_addr, uint32_t total_len, uint8_t sign_type)
+static fih_ret bflb_sp_mediaboot_cal_hash(uint32_t start_addr, uint32_t total_len, uint8_t sign_type)
 {
     uint32_t deal_len = 0;
     uint32_t read_len = 0;
@@ -98,7 +98,7 @@ static int32_t bflb_sp_mediaboot_cal_hash(uint32_t start_addr, uint32_t total_le
         deal_len += read_len;
     }
 
-    return BFLB_BOOT2_SUCCESS;
+    FIH_RET(FIH_SUCCESS);
 }
 
 #if BFLB_SP_BOOT2_SUPPORT_SIGN_ENCRYPT
@@ -112,17 +112,16 @@ static int32_t bflb_sp_mediaboot_cal_hash(uint32_t start_addr, uint32_t total_le
  * @return BL_Err_Type
  *
 *******************************************************************************/
-static int32_t bflb_sp_mediaboot_read_signaure(uint32_t addr, uint32_t *len)
+static fih_ret bflb_sp_mediaboot_read_signaure(uint32_t addr, uint32_t *len)
 {
-    int32_t ret = BFLB_BOOT2_SUCCESS;
     uint32_t sig_len = 0;
     uint8_t *ptmp;
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
 
     /* Read signature*/
-    ret = bflb_sp_mediaboot_read(addr, (uint8_t *)&sig_len, sizeof(sig_len));
-
-    if (ret != BFLB_BOOT2_SUCCESS) {
-        return ret;
+    FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr, (uint8_t *)&sig_len, sizeof(sig_len));
+    if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+        FIH_RET(fih_rc);
     }
 
     addr += sizeof(sig_len);
@@ -130,26 +129,25 @@ static int32_t bflb_sp_mediaboot_read_signaure(uint32_t addr, uint32_t *len)
     if (sig_len > HAL_BOOT2_SIGN_MAXSIZE) {
 #if HAL_BOOT2_SUPPORT_SIGN_SHA384
         if (sig_len > HAL_BOOT2_SIGN_MAXSIZE_SHA384) {
-            return BFLB_BOOT2_IMG_SIGNATURE_LEN_ERROR;
+            FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_SIGNATURE_LEN_ERROR));
         }
 #else
-        return BFLB_BOOT2_IMG_SIGNATURE_LEN_ERROR;
+        FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_SIGNATURE_LEN_ERROR));
 #endif
     }
 
     /* Tail 4 bytes for crc */
     ptmp = ((uint8_t *)g_boot2_read_buf);
-    ret = bflb_sp_mediaboot_read(addr, (uint8_t *)(ptmp + sizeof(sig_len)), sig_len + 4);
-
-    if (ret != BFLB_BOOT2_SUCCESS) {
-        return ret;
+    FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr, (uint8_t *)(ptmp + sizeof(sig_len)), sig_len + 4);
+    if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+        FIH_RET(fih_rc);
     }
 
     arch_memcpy_fast(g_boot2_read_buf, &sig_len, sizeof(sig_len));
     addr += (sig_len + 4);
     *len = sig_len;
 
-    return ret;
+    FIH_RET(FIH_SUCCESS);
 }
 
 #endif
@@ -163,32 +161,31 @@ static int32_t bflb_sp_mediaboot_read_signaure(uint32_t addr, uint32_t *len)
  * @return BL_Err_Type
  *
 *******************************************************************************/
-static int32_t bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cfg, uint32_t boot_header_addr, uint32_t img_addr)
+static fih_ret bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cfg, uint32_t boot_header_addr, uint32_t img_addr)
 {
     uint32_t addr;
-    int32_t ret;
     uint32_t bootheader_size = sizeof(struct hal_bootheader_t);
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
 
     addr = boot_header_addr + hal_boot2_get_bootheader_offset();
     /* Read boot header*/
     BOOT2_MSG("R header from %x\r\n", addr);
 
-    ret = bflb_sp_mediaboot_read(addr, g_boot2_read_buf, bootheader_size);
-    if (ret != BFLB_BOOT2_SUCCESS) {
-        return ret;
+    FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr, g_boot2_read_buf, bootheader_size);
+    if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+        FIH_RET(fih_rc);
     }
 
-    ret = hal_boot_parse_bootheader(boot_img_cfg, (uint8_t *)g_boot2_read_buf);
-
-    if (ret != BFLB_BOOT2_SUCCESS) {
-        return ret;
+    FIH_SET(fih_rc, fih_ret_encode_status(hal_boot_parse_bootheader(boot_img_cfg, (uint8_t *)g_boot2_read_buf)));
+    if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+        FIH_RET(fih_rc);
     }
 
 #if HAL_BOOT2_SUPPORT_SIGN_SHA384
     if (boot_img_cfg->basic_cfg.sign_type == HAL_BOOT_SIGN_TYPE_ECC_SHA384) {
-        ret = bflb_sp_mediaboot_read(addr + bootheader_size, g_boot2_read_buf, bootheader_size);
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            return ret;
+        FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr + bootheader_size, g_boot2_read_buf, bootheader_size);
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+            FIH_RET(fih_rc);
         }
         arch_memcpy_fast(boot_img_cfg->hash_384_ext, g_boot2_read_buf, 16);
 
@@ -220,38 +217,38 @@ static int32_t bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cf
         if (boot_img_cfg->basic_cfg.sign_type == HAL_BOOT_SIGN_TYPE_ECC_SHA384) {
             /* Read public key for SHA384 */
             BOOT2_MSG("R PK SHA384\r\n");
-            ret = bflb_sp_mediaboot_read(addr, g_boot2_read_buf, sizeof(boot_pk_sha384_config));
-            if (ret != BFLB_BOOT2_SUCCESS) {
-                return ret;
+            FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr, g_boot2_read_buf, sizeof(boot_pk_sha384_config));
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                FIH_RET(fih_rc);
             }
         } else
 #endif
         {
             /* Read public key */
             BOOT2_MSG("R PK\r\n");
-            ret = bflb_sp_mediaboot_read(addr, g_boot2_read_buf, sizeof(boot_pk_config));
-            if (ret != BFLB_BOOT2_SUCCESS) {
-                return ret;
+            FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr, g_boot2_read_buf, sizeof(boot_pk_config));
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                FIH_RET(fih_rc);
             }
         }
 
-        ret = bflb_sp_boot_parse_pkey(boot_img_cfg, (uint8_t *)g_boot2_read_buf, 1);
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            return ret;
+        FIH_CALL(bflb_sp_boot_parse_pkey, fih_rc, boot_img_cfg, (uint8_t *)g_boot2_read_buf, 1);
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+            FIH_RET(fih_rc);
         }
 #if defined(CHIP_BL606P) || defined(CHIP_BL808)
         addr += sizeof(boot_pk_config);
         if (hal_boot2_get_grp_count() > 1) {
             /* Read public key 2*/
             BOOT2_MSG("R PK2\r\n");
-            ret = bflb_sp_mediaboot_read(addr, g_boot2_read_buf, sizeof(boot_pk_config));
-            if (ret != BFLB_BOOT2_SUCCESS) {
-                return ret;
+            FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr, g_boot2_read_buf, sizeof(boot_pk_config));
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                FIH_RET(fih_rc);
             }
 
-            ret = bflb_sp_boot_parse_pkey(boot_img_cfg, (uint8_t *)g_boot2_read_buf, 0);
-            if (ret != BFLB_BOOT2_SUCCESS) {
-                return ret;
+            FIH_CALL(bflb_sp_boot_parse_pkey, fih_rc, boot_img_cfg, (uint8_t *)g_boot2_read_buf, 0);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                FIH_RET(fih_rc);
             }
         }
 #endif
@@ -268,13 +265,13 @@ static int32_t bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cf
         }
 
         /* Read signature*/
-        ret = bflb_sp_mediaboot_read_signaure(addr, &sig_len);
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            return ret;
+        FIH_CALL(bflb_sp_mediaboot_read_signaure, fih_rc, addr, &sig_len);
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+            FIH_RET(fih_rc);
         }
-        ret = bflb_sp_boot_parse_signature(boot_img_cfg, (uint8_t *)g_boot2_read_buf, 1);
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            return ret;
+        FIH_CALL(bflb_sp_boot_parse_signature, fih_rc, boot_img_cfg, (uint8_t *)g_boot2_read_buf, 1);
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+            FIH_RET(fih_rc);
         }
 #if defined(CHIP_BL606P) || defined(CHIP_BL808)
         /*len+data+crc*/
@@ -284,14 +281,14 @@ static int32_t bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cf
         if (hal_boot2_get_grp_count() > 1) {
             /* Read signature2*/
             BOOT2_MSG("R SIG2\r\n");
-            ret = bflb_sp_mediaboot_read_signaure(addr, &sig_len);
-            if (ret != BFLB_BOOT2_SUCCESS) {
-                return ret;
+            FIH_CALL(bflb_sp_mediaboot_read_signaure, fih_rc, addr, &sig_len);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                FIH_RET(fih_rc);
             }
 
-            ret = bflb_sp_boot_parse_signature(boot_img_cfg, (uint8_t *)g_boot2_read_buf, 0);
-            if (ret != BFLB_BOOT2_SUCCESS) {
-                return ret;
+            FIH_CALL(bflb_sp_boot_parse_signature, fih_rc, boot_img_cfg, (uint8_t *)g_boot2_read_buf, 0);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                FIH_RET(fih_rc);
             }
         }
 #endif
@@ -304,14 +301,14 @@ static int32_t bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cf
     if (boot_img_cfg->basic_cfg.encrypt_type) {
         /* Read aes iv*/
         BOOT2_MSG("R IV\r\n");
-        ret = bflb_sp_mediaboot_read(addr, g_boot2_read_buf, sizeof(boot_aes_config));
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            return ret;
+        FIH_CALL(bflb_sp_mediaboot_read, fih_rc, addr, g_boot2_read_buf, sizeof(boot_aes_config));
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+            FIH_RET(fih_rc);
         }
         addr += sizeof(boot_aes_config);
-        ret = bflb_sp_boot_parse_aesiv(boot_img_cfg, (uint8_t *)g_boot2_read_buf);
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            return ret;
+        FIH_CALL(bflb_sp_boot_parse_aesiv, fih_rc, boot_img_cfg, (uint8_t *)g_boot2_read_buf);
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+            FIH_RET(fih_rc);
         }
     }
 #endif
@@ -320,24 +317,21 @@ static int32_t bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cf
         /* Flash image */
         if (!boot_img_cfg->basic_cfg.hash_ignore) {
             BOOT2_MSG("Cal hash addr 0x%x,len %d\r\n", img_addr, boot_img_cfg->basic_cfg.img_len_cnt);
-            ret = bflb_sp_mediaboot_cal_hash(img_addr,
-                                          boot_img_cfg->basic_cfg.img_len_cnt, boot_img_cfg->basic_cfg.sign_type);
-
-            if (ret != BFLB_BOOT2_SUCCESS) {
+            FIH_CALL(bflb_sp_mediaboot_cal_hash, fih_rc, img_addr, boot_img_cfg->basic_cfg.img_len_cnt, boot_img_cfg->basic_cfg.sign_type);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
                 BOOT2_MSG("Cal hash err\r\n");
-                return ret;
+                FIH_RET(fih_rc);
             }
 
-            ret = bflb_sp_boot_parser_check_hash(boot_img_cfg);
-
-            if (ret != BFLB_BOOT2_SUCCESS) {
-                return ret;
+            FIH_CALL(bflb_sp_boot_parser_check_hash, fih_rc, boot_img_cfg);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                FIH_RET(fih_rc);
             }
         }
 #if BFLB_SP_BOOT2_SUPPORT_SIGN_ENCRYPT
-        ret = bflb_sp_boot_parser_check_signature(boot_img_cfg);
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            return ret;
+        FIH_CALL(bflb_sp_boot_parser_check_signature, fih_rc, boot_img_cfg);
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+            FIH_RET(fih_rc);
         }
 #endif
         boot_img_cfg->img_valid = 1;
@@ -345,7 +339,7 @@ static int32_t bflb_sp_mediaboot_parse_one_group(boot2_image_config *boot_img_cf
         boot_img_cfg->img_valid = 0;
     }
 
-    return ret;
+    FIH_RET(FIH_SUCCESS);
 }
 
 /****************************************************************************/ /**
@@ -363,6 +357,7 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
     uint32_t addr = 0;
     int32_t ret = 0;
     uint32_t bootheader_size = sizeof(struct hal_bootheader_t);
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
 
     if (0 == g_boot2_parse_xz_image_status) {
         BOOT2_MSG("xz parse header\r\n");
@@ -413,9 +408,9 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
                 BOOT2_MSG("xz parse PK\r\n");
             }
 
-            ret=bflb_sp_boot_parse_pkey(boot_img_cfg,(uint8_t *)&input[addr],1);
-            if(ret!=BFLB_BOOT2_SUCCESS){
-                return ret;
+            FIH_CALL(bflb_sp_boot_parse_pkey, fih_rc, boot_img_cfg, (uint8_t *)&input[addr], 1);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                return fih_int_decode(fih_rc);
             }
 #if defined(CHIP_BL606P) || defined(CHIP_BL808)
             addr+=sizeof(boot_pk_config);
@@ -423,9 +418,9 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
                 /* Read public key 2*/
                 BOOT2_MSG("xz parse PK2\r\n");
 
-                ret=bflb_sp_boot_parse_pkey(boot_img_cfg,(uint8_t *)&input[addr],0);
-                if(ret!=BFLB_BOOT2_SUCCESS){
-                    return ret;
+                FIH_CALL(bflb_sp_boot_parse_pkey, fih_rc, boot_img_cfg, (uint8_t *)&input[addr], 0);
+                if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                    return fih_int_decode(fih_rc);
                 }
             }
 #endif
@@ -444,9 +439,9 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
             /* Read signature*/
             sig_len = *(uint32_t *)&input[addr];
 
-            ret=bflb_sp_boot_parse_signature(boot_img_cfg,(uint8_t *)&input[addr],1);
-            if(ret!=BFLB_BOOT2_SUCCESS){
-                return ret;
+            FIH_CALL(bflb_sp_boot_parse_signature, fih_rc, boot_img_cfg, (uint8_t *)&input[addr], 1);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                return fih_int_decode(fih_rc);
             }
 #if defined(CHIP_BL606P) || defined(CHIP_BL808)
             /*len+data+crc*/
@@ -458,9 +453,9 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
                 BOOT2_MSG("xz parse SIG2\r\n");
                 sig_len = *(uint32_t *)&input[addr];
 
-                ret=bflb_sp_boot_parse_signature(boot_img_cfg,(uint8_t *)&input[addr],0);
-                if(ret!=BFLB_BOOT2_SUCCESS){
-                    return ret;
+                FIH_CALL(bflb_sp_boot_parse_signature, fih_rc, boot_img_cfg, (uint8_t *)&input[addr], 0);
+                if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                    return fih_int_decode(fih_rc);
                 }
             }
 #endif
@@ -474,9 +469,9 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
             /* Read aes iv*/
             BOOT2_MSG("xz parse IV\r\n");
 
-            ret=bflb_sp_boot_parse_aesiv(boot_img_cfg,(uint8_t *)&input[addr]);
-            if(ret!=BFLB_BOOT2_SUCCESS){
-                return ret;
+            FIH_CALL(bflb_sp_boot_parse_aesiv, fih_rc, boot_img_cfg, (uint8_t *)&input[addr]);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                return fih_int_decode(fih_rc);
             }
             addr+=sizeof(boot_aes_config);
         }
@@ -507,18 +502,17 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
                     g_boot2_parse_xz_image_status = 2;
                 }
                 if(last_packet){
-                    ret = bflb_sp_boot_parser_check_hash(boot_img_cfg);
-
-                    if (ret != BFLB_BOOT2_SUCCESS) {
-                        return ret;
+                    FIH_CALL(bflb_sp_boot_parser_check_hash, fih_rc, boot_img_cfg);
+                    if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                        return fih_int_decode(fih_rc);
                     }
                 }
             }
 #if BFLB_SP_BOOT2_SUPPORT_SIGN_ENCRYPT
             if(last_packet){
-                ret=bflb_sp_boot_parser_check_signature(boot_img_cfg);
-                if(ret!=BFLB_BOOT2_SUCCESS){
-                    return ret;
+                FIH_CALL(bflb_sp_boot_parser_check_signature, fih_rc, boot_img_cfg);
+                if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                    return fih_int_decode(fih_rc);
                 }
             }
 #endif
@@ -541,11 +535,11 @@ int32_t bflb_sp_mediaboot_parse_one_group_xz(boot2_image_config *boot_img_cfg, u
  * @return BL_Err_Type
  *
 *******************************************************************************/
-int32_t ATTR_TCM_SECTION bflb_sp_mediaboot_read(uint32_t addr, uint8_t *data, uint32_t len)
+fih_ret ATTR_TCM_SECTION bflb_sp_mediaboot_read(uint32_t addr, uint8_t *data, uint32_t len)
 {
     bflb_flash_read(addr, data, len);
 
-    return BFLB_BOOT2_SUCCESS;
+    FIH_RET(FIH_SUCCESS);
 }
 
 /****************************************************************************/ /**
@@ -562,6 +556,7 @@ int32_t bflb_sp_mediaboot_version_check(uint8_t *image_start, uint8_t group_roll
 {
     uint8_t ef_app_version = 0;
     uint32_t read_buf[3];
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
 
     /* get version_real from efuse */
     if(SUCCESS == bflb_get_app_version_from_efuse(&ef_app_version)){
@@ -577,7 +572,10 @@ int32_t bflb_sp_mediaboot_version_check(uint8_t *image_start, uint8_t group_roll
             }
             /* read app version */
             if (image_start == NULL) {
-                bflb_sp_mediaboot_read(g_boot_img_cfg[i].basic_cfg.group_image_offset + BFLB_SP_APP_VERSION_LINK_OFFSET, (uint8_t *)read_buf, sizeof(read_buf));
+                FIH_CALL(bflb_sp_mediaboot_read, fih_rc, g_boot_img_cfg[i].basic_cfg.group_image_offset + BFLB_SP_APP_VERSION_LINK_OFFSET, (uint8_t *)read_buf, sizeof(read_buf));
+                if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                    return ERROR;
+                }
             } else {
                 arch_memcpy_fast((uint8_t *)read_buf, (image_start + BFLB_SP_APP_VERSION_LINK_OFFSET), sizeof(read_buf));
             }
@@ -633,7 +631,6 @@ int32_t bflb_sp_mediaboot_version_check(uint8_t *image_start, uint8_t group_roll
 *******************************************************************************/
 int32_t bflb_sp_mediaboot_main(uint32_t group_boot_header_addr[BFLB_SP_BOOT2_CPU_GROUP_MAX], uint8_t group_roll_back[BFLB_SP_BOOT2_CPU_GROUP_MAX], uint8_t roll_back)
 {
-    int32_t ret;
     uint32_t i = 0, core;
     uint32_t valid_group_found = 0;
     uint32_t boot_header_addr[BFLB_SP_BOOT2_CPU_GROUP_MAX];
@@ -641,6 +638,7 @@ int32_t bflb_sp_mediaboot_main(uint32_t group_boot_header_addr[BFLB_SP_BOOT2_CPU
     BOOT2_MSG_DBG("Media boot main\r\n");
 
 #if defined(CHIP_BL616CL)
+    int32_t ret;
     ret = hal_boot2_load_runtime_sign_cfg(&g_efuse_cfg);
     if (ret != 0) {
         BOOT2_MSG_ERR("Load runtime sign cfg failed: %d\r\n", (int)ret);
@@ -662,14 +660,18 @@ int32_t bflb_sp_mediaboot_main(uint32_t group_boot_header_addr[BFLB_SP_BOOT2_CPU
             continue;
         }
 
-        ret = bflb_sp_mediaboot_parse_one_group(&g_boot_img_cfg[i], boot_header_addr[i],
-                                             boot_header_addr[i] + BFLB_FW_IMG_OFFSET_AFTER_HEADER);
+        {
+            FIH_DECLARE(fih_rc, FIH_FAILURE);
 
-        if (ret != BFLB_BOOT2_SUCCESS) {
-            BOOT2_MSG_ERR("Group %d parse fail ret 0x%x\r\n", i, ret);
-            group_roll_back[i] = 1;
-        } else {
-            valid_group_found++;
+            FIH_CALL(bflb_sp_mediaboot_parse_one_group, fih_rc, &g_boot_img_cfg[i], boot_header_addr[i],
+                     boot_header_addr[i] + BFLB_FW_IMG_OFFSET_AFTER_HEADER);
+
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+                BOOT2_MSG_ERR("Group %d parse fail\r\n", i);
+                group_roll_back[i] = 1;
+            } else {
+                valid_group_found++;
+            }
         }
     }
 

@@ -3,6 +3,9 @@
 
 #if defined(BL616)
 #include "rfparam_adapter.h"
+#include "bl616.h"
+#elif defined(BL702L)
+#include "bl702l.h"
 #endif
 
 #include <bl_sys.h>
@@ -17,9 +20,32 @@
 
 #include "board.h"
 
-static struct bflb_device_s *uart0;
 extern void __libc_init_array(void);
 extern void board_ncp_init(void);
+
+void lmac154_app_init(void)
+{
+    irq_callback lmac154_isr_callback;
+
+    lmac154_init();
+    lmac154_enableCoex();
+    lmac154_setStd2015Extra(true);
+    lmac154_setTxRetry(0);
+    lmac154_fptClear();
+    lmac154_setEnhAckWaitTime((LMAC154_AIFS + 10 + (6 + 42) * 2) << LMAC154_US_PER_SYMBOL_BITS);
+    lmac154_setRxStateWhenIdle(true);
+
+#if defined(BL702L)
+    lmac154_setTxRxTransTime(0xA0);
+#endif
+
+    zb_timer_cfg(bflb_mtimer_get_time_us() >> LMAC154_US_PER_SYMBOL_BITS);
+    lmac154_disableRx();
+
+    lmac154_isr_callback = (irq_callback)lmac154_getInterruptCallback();
+    bflb_irq_attach(M154_INT_IRQn, lmac154_isr_callback, NULL);
+    bflb_irq_enable(M154_INT_IRQn);
+}
 
 void otrInitUser(otInstance * instance)
 {
@@ -33,30 +59,11 @@ void vApplicationTickHook( void )
 #endif
 }
 
-int main(void)
+static void prvInitTask(void *pvParameters)
 {
     otRadio_opt_t opt;
 
-    bl_sys_rstinfo_init();
-
-    board_ncp_init();
-
-    bflb_mtd_init();
-
-    configASSERT((configMAX_PRIORITIES > 4));
-
-#if defined(BL616)
-    /* Init rf */
-    if (0 != rfparam_init(0, NULL, 0)) {
-        printf("PHY RF init failed!\r\n");
-        return 0;
-    }
-#endif
-    
-    __libc_init_array();
-
-    uart0 = bflb_device_get_by_name("uart0");
-    ot_uart_init(uart0);
+    lmac154_app_init();
 
     opt.byte = 0;
 
@@ -75,7 +82,35 @@ int main(void)
     opt.bf.isTimeSyncEnable = true;
 #endif
 
+    struct bflb_device_s *uart0 = bflb_device_get_by_name("uart0");
+    ot_uart_init(uart0);
+
     otrStart(opt);
+
+    vTaskDelete(NULL);
+}
+
+int main(void)
+{
+    bl_sys_rstinfo_init();
+
+    board_ncp_init();
+
+    bflb_mtd_init();
+
+    configASSERT((configMAX_PRIORITIES > 4));
+
+#if defined(BL616)
+    /* Init rf */
+    if (0 != rfparam_init(0, NULL, 0)) {
+        printf("PHY RF init failed!\r\n");
+        return 0;
+    }
+#endif
+
+    __libc_init_array();
+
+    xTaskCreate(prvInitTask, "init", 1024, NULL, 15, NULL);
 
     puts("[OS] Starting OS Scheduler...\r\n");
     vTaskStartScheduler();

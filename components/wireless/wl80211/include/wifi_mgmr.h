@@ -273,6 +273,7 @@ int wifi_mgmr_set_country_code(char *country_code);
 int wifi_mgmr_get_country_code(char *country_code);
 /* Set static IP configuration (not implemented, returns -1) */
 int wifi_mgmr_sta_ip_set(uint32_t ip, uint32_t mask, uint32_t gw, uint32_t dns);
+int wifi_mgmr_sta_ip_get(uint32_t *addr, uint32_t *mask, uint32_t *gw, uint32_t *dns);
 /* Print scan list to console (not implemented, returns -1) */
 int wifi_mgmr_sta_scanlist(void);
 /* Enable automatic reconnection (stub for compatibility) */

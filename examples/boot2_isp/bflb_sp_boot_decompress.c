@@ -64,6 +64,7 @@ static int32_t bflb_sp_boot2_fw_decompress(uint32_t src_address, uint32_t dest_a
 
     int32_t parse_ret;
     boot2_image_config boot_img_cfg;
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
     g_boot2_parse_xz_image_status = 0;
 
     *p_dest_size = 0;
@@ -96,7 +97,8 @@ static int32_t bflb_sp_boot2_fw_decompress(uint32_t src_address, uint32_t dest_a
         if (b.in_pos == b.in_size) {
             BOOT2_MSG_DBG("XZ Feeding\r\n");
 
-            if (BFLB_BOOT2_SUCCESS != bflb_sp_mediaboot_read(src_address, (uint8_t *)b.in, BFLB_BOOT2_XZ_READ_BUF_SIZE)) {
+            FIH_CALL(bflb_sp_mediaboot_read, fih_rc, src_address, (uint8_t *)b.in, BFLB_BOOT2_XZ_READ_BUF_SIZE);
+            if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
                 return BFLB_BOOT2_FLASH_READ_ERROR;
             }
 

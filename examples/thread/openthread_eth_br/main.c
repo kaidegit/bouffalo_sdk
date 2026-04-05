@@ -1,3 +1,11 @@
+#include <assert.h>
+
+#if defined(BL616)
+#include "bl616.h"
+#elif defined(BL702L)
+#include "bl702l.h"
+#endif
+
 #include <bflb_irq.h>
 #include <bflb_uart.h>
 #include <bflb_wdg.h>
@@ -44,6 +52,8 @@
 #define DBG_TAG "MAIN"
 #include "log.h"
 
+#include <zb_timer.h>
+
 #define THREAD_CHANNEL     15
 #define THREAD_PANID       0x6677
 #define THREAD_EXTPANID    { 0x11, 0x11, 0x11, 0x11, 0x22, 0x22, 0x22, 0x22 }
@@ -59,6 +69,30 @@ static struct netif gnetif;
  ****************************************************************************/
 extern void __libc_init_array(void);
 extern void shell_init_with_task(struct bflb_device_s *shell);
+
+void lmac154_app_init(void)
+{
+    irq_callback lmac154_isr_callback;
+
+    lmac154_init();
+    lmac154_enableCoex();
+    lmac154_setStd2015Extra(true);
+    lmac154_setTxRetry(0);
+    lmac154_fptClear();
+    lmac154_setEnhAckWaitTime((LMAC154_AIFS + 10 + (6 + 42) * 2) << LMAC154_US_PER_SYMBOL_BITS);
+    lmac154_setRxStateWhenIdle(true);
+
+#if defined(BL702L)
+    lmac154_setTxRxTransTime(0xA0);
+#endif
+
+    zb_timer_cfg(bflb_mtimer_get_time_us() >> LMAC154_US_PER_SYMBOL_BITS);
+    lmac154_disableRx();
+
+    lmac154_isr_callback = (irq_callback)lmac154_getInterruptCallback();
+    bflb_irq_attach(M154_INT_IRQn, lmac154_isr_callback, NULL);
+    bflb_irq_enable(M154_INT_IRQn);
+}
 
 void vApplicationTickHook( void )
 {
@@ -206,6 +240,31 @@ void otrInitUser(otInstance *instance)
     otbr_nat64_init(OPENTHREAD_OTBR_CONFIG_NAT64_CIDR);
 }
 
+static void prvInitTask(void *pvParameters)
+{
+    otRadio_opt_t opt;
+
+    lmac154_app_init();
+
+    opt.byte = 0;
+
+    opt.bf.isCoexEnable = false;
+    opt.bf.isFtd = true;
+#if OPENTHREAD_CONFIG_MLE_LINK_METRICS_SUBJECT_ENABLE
+    opt.bf.isLinkMetricEnable = true;
+#endif
+#if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
+    opt.bf.isCSLReceiverEnable = true;
+#endif
+#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
+    opt.bf.isTimeSyncEnable = true;
+#endif
+
+    otrStart(opt);
+
+    vTaskDelete(NULL);
+}
+
 int main(void)
 {
     otRadio_opt_t opt;
@@ -236,21 +295,7 @@ int main(void)
 
     tcpip_init(netif_config, NULL);
 
-    opt.byte = 0;
-
-    opt.bf.isCoexEnable = false;
-    opt.bf.isFtd = true;
-#if OPENTHREAD_CONFIG_MLE_LINK_METRICS_SUBJECT_ENABLE
-    opt.bf.isLinkMetricEnable = true;
-#endif
-#if OPENTHREAD_CONFIG_MAC_CSL_RECEIVER_ENABLE
-    opt.bf.isCSLReceiverEnable = true;
-#endif
-#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
-    opt.bf.isTimeSyncEnable = true;
-#endif
-
-    otrStart(opt);
+    xTaskCreate(prvInitTask, "init", 1024, NULL, 15, NULL);
 
     puts("[OS] Starting OS Scheduler...\r\n");
     vTaskStartScheduler();

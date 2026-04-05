@@ -33,20 +33,16 @@
 #define LWIP_HDR_LWIPOPTS_H__
 
 /* ---------- DEBUG options ---------- */
-#define LWIP_NETIF_API     	1
-#define LWIP_DEBUG         	1
-#define LWIP_STATS_DISPLAY 	1
-#define SOCKETS_DEBUG      	LWIP_DBG_OFF
-#ifdef BL616_DHCP_DEBUG
-#define DHCP_DEBUG LWIP_DBG_ON
-#else
-#define DHCP_DEBUG LWIP_DBG_OFF
-#endif
+#define LWIP_NETIF_API     	          1
+#define LWIP_DEBUG         	          1
+#define LWIP_STATS_DISPLAY            1
+
+#define ETHARP_DEBUG                  LWIP_DBG_OFF
+#define PBUF_DEBUG                    LWIP_DBG_OFF
 #define IP6_DEBUG                     LWIP_DBG_OFF
 #define ICMP_DEBUG                    LWIP_DBG_OFF
 #define UDP_DEBUG                     LWIP_DBG_OFF
-#define ETHARP_DEBUG                  LWIP_DBG_OFF
-#define PBUF_DEBUG                    LWIP_DBG_OFF
+#define DHCP_DEBUG                    LWIP_DBG_OFF
 
 #define TCPIP_MBOX_SIZE               64
 #define TCPIP_THREAD_STACKSIZE        1024

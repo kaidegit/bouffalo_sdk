@@ -753,7 +753,9 @@ int32_t hal_boot_parse_bootheader(boot2_image_config *boot_img_cfg, uint8_t *dat
     }
 
     if (g_user_hash_ignored) {
-        boot_img_cfg->basic_cfg.hash_ignore = 1;
+        if (g_efuse_cfg.sign[i] == HAL_APP_NO_SIGN) {
+            boot_img_cfg->basic_cfg.hash_ignore = 1;
+        }
     }
 
     if (boot_img_cfg->basic_cfg.img_len_cnt == 0) {
@@ -861,7 +863,7 @@ void hal_boot2_get_img_info(uint8_t *data, uint32_t *image_offset, uint32_t *img
         arch_memcpy_fast(phash, header->basic_cfg.hash, sizeof(header->basic_cfg.hash));
 #if HAL_BOOT2_SUPPORT_SIGN_SHA384
         /* For SHA384, read the remaining 16 bytes from after the boot header */
-        if (HAL_BOOT_SIGN_TYPE_ECC_SHA384 == g_efuse_cfg.sign) {
+        if (HAL_BOOT_SIGN_TYPE_ECC_SHA384 == g_efuse_cfg.sign[0]) {
             uint8_t *hash_ext = data + sizeof(struct hal_bootheader_t);
             arch_memcpy_fast(&phash[HAL_BOOT2_PK_HASH_SIZE], hash_ext, 16);
         }

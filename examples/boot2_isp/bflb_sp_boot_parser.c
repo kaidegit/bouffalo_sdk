@@ -97,7 +97,7 @@ static uint32_t bflb_sp_boot_parse_is_pkhash_valid(uint8_t pk_src, uint8_t *pkha
  * @return boot_error_code type
  *
 *******************************************************************************/
-int32_t bflb_sp_boot_parse_pkey(boot2_image_config *g_boot_img_cfg, uint8_t *data, uint8_t own)
+fih_ret bflb_sp_boot_parse_pkey(boot2_image_config *g_boot_img_cfg, uint8_t *data, uint8_t own)
 {
 #if HAL_BOOT2_SUPPORT_SIGN_SHA384
     uint32_t pk_hash[HAL_BOOT2_PK_HASH_SIZE_SHA384 / 4]; /* 48 bytes */
@@ -122,7 +122,7 @@ int32_t bflb_sp_boot_parse_pkey(boot2_image_config *g_boot_img_cfg, uint8_t *dat
                 if (1 != bflb_sp_boot_parse_is_pkhash_valid(g_boot_img_cfg->pk_src, (uint8_t *)pk_hash,
                                                             g_boot_img_cfg->basic_cfg.sign_type)) {
                     BOOT2_MSG("PK SHA384 sha error\r\n");
-                    return BFLB_BOOT2_IMG_PK_HASH_ERROR;
+                    FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_PK_HASH_ERROR));
                 }
             }
 
@@ -132,7 +132,7 @@ int32_t bflb_sp_boot_parse_pkey(boot2_image_config *g_boot_img_cfg, uint8_t *dat
             }
         } else {
             BOOT2_MSG("PK SHA384 crc error\r\n");
-            return BFLB_BOOT2_IMG_PK_CRC_ERROR;
+            FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_PK_CRC_ERROR));
         }
     } else
 #endif
@@ -153,7 +153,7 @@ int32_t bflb_sp_boot_parse_pkey(boot2_image_config *g_boot_img_cfg, uint8_t *dat
                 if (1 != bflb_sp_boot_parse_is_pkhash_valid(g_boot_img_cfg->pk_src, (uint8_t *)pk_hash,
                                                             g_boot_img_cfg->basic_cfg.sign_type)) {
                     BOOT2_MSG("PK sha error\r\n");
-                    return BFLB_BOOT2_IMG_PK_HASH_ERROR;
+                    FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_PK_HASH_ERROR));
                 }
             }
 
@@ -163,11 +163,10 @@ int32_t bflb_sp_boot_parse_pkey(boot2_image_config *g_boot_img_cfg, uint8_t *dat
             }
         } else {
             BOOT2_MSG("PK crc error\r\n");
-            return BFLB_BOOT2_IMG_PK_CRC_ERROR;
+            FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_PK_CRC_ERROR));
         }
     }
-
-    return BFLB_BOOT2_SUCCESS;
+    FIH_RET(FIH_SUCCESS);
 }
 
 /****************************************************************************/ /**
@@ -180,7 +179,7 @@ int32_t bflb_sp_boot_parse_pkey(boot2_image_config *g_boot_img_cfg, uint8_t *dat
  * @return boot_error_code type
  *
 *******************************************************************************/
-int32_t bflb_sp_boot_parse_signature(boot2_image_config *g_boot_img_cfg, uint8_t *data, uint8_t own)
+fih_ret bflb_sp_boot_parse_signature(boot2_image_config *g_boot_img_cfg, uint8_t *data, uint8_t own)
 {
     boot_sign_config *cfg = (boot_sign_config *)data;
     uint32_t crc;
@@ -196,7 +195,7 @@ int32_t bflb_sp_boot_parse_signature(boot2_image_config *g_boot_img_cfg, uint8_t
     }
 
     if (cfg->sig_len > max_sig_len) {
-        return BFLB_BOOT2_IMG_SIGNATURE_LEN_ERROR;
+        FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_SIGNATURE_LEN_ERROR));
     }
 
     /* CRC include sig_len*/
@@ -212,10 +211,10 @@ int32_t bflb_sp_boot_parse_signature(boot2_image_config *g_boot_img_cfg, uint8_t
         }
     } else {
         BOOT2_MSG("SIG crc error\r\n");
-        return BFLB_BOOT2_IMG_SIGNATURE_CRC_ERROR;
+        FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_SIGNATURE_CRC_ERROR));
     }
 
-    return BFLB_BOOT2_SUCCESS;
+    FIH_RET(FIH_SUCCESS);
 }
 
 /****************************************************************************/ /**
@@ -227,7 +226,7 @@ int32_t bflb_sp_boot_parse_signature(boot2_image_config *g_boot_img_cfg, uint8_t
  * @return boot_error_code type
  *
 *******************************************************************************/
-int32_t bflb_sp_boot_parse_aesiv(boot2_image_config *g_boot_img_cfg, uint8_t *data)
+fih_ret bflb_sp_boot_parse_aesiv(boot2_image_config *g_boot_img_cfg, uint8_t *data)
 {
     boot_aes_config *cfg = (boot_aes_config *)data;
 
@@ -249,10 +248,10 @@ int32_t bflb_sp_boot_parse_aesiv(boot2_image_config *g_boot_img_cfg, uint8_t *da
         }
     } else {
         BOOT2_MSG("AES IV crc error\r\n");
-        return BFLB_BOOT2_IMG_AES_IV_CRC_ERROR;
+        FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_AES_IV_CRC_ERROR));
     }
 
-    return BFLB_BOOT2_SUCCESS;
+    FIH_RET(FIH_SUCCESS);
 }
 
 /****************************************************************************/ /**
@@ -263,9 +262,8 @@ int32_t bflb_sp_boot_parse_aesiv(boot2_image_config *g_boot_img_cfg, uint8_t *da
  * @return boot_error_code type
  *
 *******************************************************************************/
-int32_t bflb_sp_boot_parser_check_signature(boot2_image_config *g_boot_img_cfg)
+fih_ret bflb_sp_boot_parser_check_signature(boot2_image_config *g_boot_img_cfg)
 {
-    int32_t ret = 0;
     uint64_t startTime = 0;
     struct bflb_ecdsa_s ecdsa_handle;
     uint32_t curve_type;
@@ -280,7 +278,7 @@ int32_t bflb_sp_boot_parser_check_signature(boot2_image_config *g_boot_img_cfg)
     BOOT2_MSG_DBG("ps_mode %d,efuse hbn_check_sign %d\r\n", g_ps_mode, g_efuse_cfg.hbn_check_sign);
 
     if (g_ps_mode == BFLB_PSM_HBN && (!g_efuse_cfg.hbn_check_sign)) {
-        return BFLB_BOOT2_SUCCESS;
+        FIH_RET(FIH_SUCCESS);
     }
 
     if (g_boot_img_cfg->basic_cfg.sign_type) {
@@ -307,17 +305,16 @@ int32_t bflb_sp_boot_parser_check_signature(boot2_image_config *g_boot_img_cfg)
         ecdsa_handle.publicKeyx = (uint32_t *)g_boot_img_cfg->eckey_x;
         ecdsa_handle.publicKeyy = (uint32_t *)g_boot_img_cfg->eckey_y;
 
-        ret = bflb_sec_ecdsa_verify(&ecdsa_handle, pk_hash, hash_len_words, (uint32_t *)g_boot_img_cfg->signature,
-                                    (uint32_t *)&g_boot_img_cfg->signature[signature_size]);
-        if (ret != 0) {
+        if (bflb_sec_ecdsa_verify(&ecdsa_handle, pk_hash, hash_len_words, (uint32_t *)g_boot_img_cfg->signature,
+                                  (uint32_t *)&g_boot_img_cfg->signature[signature_size]) != 0) {
             BOOT2_MSG_DBG("verify failed\r\n");
-            return BFLB_BOOT2_IMG_SIGN_ERROR;
+            FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_SIGN_ERROR));
         }
 
         BOOT2_MSG_DBG("Sign suss,Time=%d ms\r\n", (unsigned int)(bflb_mtimer_get_time_ms() - startTime));
     }
 
-    return BFLB_BOOT2_SUCCESS;
+    FIH_RET(FIH_SUCCESS);
 }
 
 /****************************************************************************/ /**
@@ -328,7 +325,7 @@ int32_t bflb_sp_boot_parser_check_signature(boot2_image_config *g_boot_img_cfg)
  * @return boot_error_code type
  *
 *******************************************************************************/
-int32_t bflb_sp_boot_parser_check_hash(boot2_image_config *g_boot_img_cfg)
+fih_ret bflb_sp_boot_parser_check_hash(boot2_image_config *g_boot_img_cfg)
 {
 #if HAL_BOOT2_SUPPORT_SIGN_SHA384
     uint32_t img_hash_cal[HAL_BOOT2_IMG_HASH_SIZE_SHA384 / 4];
@@ -357,11 +354,11 @@ int32_t bflb_sp_boot_parser_check_hash(boot2_image_config *g_boot_img_cfg)
 
         if (memcmp(img_hash_cal, img_header_hash, hash_size) != 0) {
             BOOT2_MSG_ERR("Hash error\r\n");
-            return BFLB_BOOT2_IMG_HASH_ERROR;
+            FIH_RET(fih_ret_encode_status(BFLB_BOOT2_IMG_HASH_ERROR));
         } else {
             BOOT2_MSG_DBG("Hash Success\r\n");
         }
     }
 
-    return BFLB_BOOT2_SUCCESS;
+    FIH_RET(FIH_SUCCESS);
 }

@@ -136,6 +136,10 @@ static void peripheral_clock_init(void)
 
 static void peripheral_clock_init_lp(void)
 {
+    PERIPHERAL_CLOCK_UART0_ENABLE();
+
+    GLB_Set_UART_CLK(ENABLE, HBN_UART_CLK_XCLK, 0);
+
 
 }
 #endif

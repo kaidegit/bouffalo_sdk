@@ -48,13 +48,10 @@ extern otRadio_t *              otRadioVar_ptr;
 otRadio_t *                     otRadioVar_ptr = &otRadioVar;
 #endif
 
-void ot_radioInit(otRadio_opt_t opt) 
+void ot_radioInit(otRadio_opt_t opt)
 {
     otRadio_rxFrame_t *pframe = NULL;
     otRadioVar_ptr = &otRadioVar;
-
-    lmac154_init();
-    lmac154_disableRx();
 
     memset(otRadioVar_ptr, 0, sizeof(otRadio_t));
     memset(&otRadio_txParam, 0, sizeof(lmac154_txParam_t));
@@ -86,7 +83,7 @@ void ot_radioInit(otRadio_opt_t opt)
     otrExitCrit(tag);
 }
 
-void ot_radioTask(ot_system_event_t trxEvent) 
+void ot_radioTask(ot_system_event_t trxEvent)
 {
     otRadio_rxFrame_t   *pframe;
     otRadioFrame        *txframe = otRadioVar_ptr->pTxFrame;
@@ -95,7 +92,7 @@ void ot_radioTask(ot_system_event_t trxEvent)
     if (!(trxEvent & OT_SYSTEM_EVENT_RADIO_ALL_MASK)) {
         return;
     }
-    
+
     if ((trxEvent & OT_SYSTEM_EVENT_RADIO_TX_ALL_MASK) && txframe) {
 
         txframe = otRadioVar_ptr->pTxFrame;
@@ -119,7 +116,7 @@ void ot_radioTask(ot_system_event_t trxEvent)
             }
         }
     }
-    
+
     if (trxEvent & OT_SYSTEM_EVENT_RADIO_RX_DONE ) {
 
         pframe = NULL;
@@ -178,10 +175,10 @@ void ot_radioTxDoneCallback (lmac154_tx_status_t tx_status, uint32_t * ack_frame
             otrNotifyEvent(OT_SYSTEM_EVENT_RADIO_TX_DONE_NO_ACK_REQ);
         }
         else if (LMAC154_TX_STATUS_TX_ABORTED == tx_status) {
-            otrNotifyEvent(OT_SYSTEM_EVENT_RADIO_TX_NO_ACK);
+            otrNotifyEvent(OT_SYSTEM_EVENT_RADIO_TX_ABORT);
         }
         else if (LMAC154_TX_STATUS_NO_ACK == tx_status) {
-            otrNotifyEvent(OT_SYSTEM_EVENT_RADIO_TX_ABORT);
+            otrNotifyEvent(OT_SYSTEM_EVENT_RADIO_TX_NO_ACK);
         }
         else if (LMAC154_TX_STATUS_ACKED == tx_status) {
             otRadioVar_ptr->pRxAckFrame->mInfo.mRxInfo.mTimestamp = lmac154_get_rx_done_timestamp() - ((uint32_t)(ack_frame_len + 1) << LMAC154_US_PER_SYMBOL_BITS);
@@ -392,7 +389,7 @@ static uint32_t ot_radioHandleRecv(uint32_t *rx_buf, uint32_t rx_len, bool isFra
     return pld - (uint8_t *)ack_buf + 2;
 }
 
-uint32_t * ot_radioRxDoneCallback (lmac154_receiveInfo_t * recvInfo, uint32_t * frame) 
+uint32_t * ot_radioRxDoneCallback (lmac154_receiveInfo_t * recvInfo, uint32_t * frame)
 {
     int                     enhAckFrameLength = 0;
     uint8_t *               enhAckFrame = NULL;
@@ -555,7 +552,7 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
         otRadio_txParam.pkt = (uint32_t *)aFrame->mPsdu;
         otRadio_txParam.pkt_length = aFrame->mLength - 2;
         otRadio_txParam.tx_channel = aFrame->mChannel - OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN;
-        otRadio_txParam.resume_channel = aFrame->mInfo.mTxInfo.mRxChannelAfterTxDone;
+        otRadio_txParam.resume_channel = aFrame->mInfo.mTxInfo.mRxChannelAfterTxDone - OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN;
         if (aFrame->mInfo.mTxInfo.mTxDelayBaseTime || aFrame->mInfo.mTxInfo.mTxDelay) {
             otRadio_txParam.csma_ca_max_backoff = 0;
         }
@@ -567,13 +564,12 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
         otRadio_txParam.delay_time = aFrame->mInfo.mTxInfo.mTxDelay >> LMAC154_US_PER_SYMBOL_BITS;
         otRadio_txParam.tx_done_cb = ot_radioTxDoneCallback;
         otRadio_txParam.next = NULL;
+        otRadioVar_ptr->pTxFrame = aFrame;
 
-        if (ot_encrytTxFrame(aFrame) != 0) {
+        if ((iret = ot_encrytTxFrame(aFrame)) != 0) {
             otrNotifyEvent(OT_SYSTEM_EVENT_RADIO_TX_ERROR);
             return OT_ERROR_NONE;
         }
-
-        otRadioVar_ptr->pTxFrame = aFrame;
 
         tag = otrEnterCrit();
         iret = lmac154_triggerParamTx(&otRadio_txParam);
@@ -585,7 +581,6 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
         else {
             otrNotifyEvent(OT_SYSTEM_EVENT_RADIO_TX_ERROR);
         }
-
 
         return OT_ERROR_NONE;
     }

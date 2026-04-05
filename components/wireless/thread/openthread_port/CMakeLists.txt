@@ -29,6 +29,11 @@ sdk_library_add_sources(./ot_radio.c)
 sdk_library_add_sources(./ot_radio_bflb.c)
 sdk_library_add_sources(./ot_sys_bflb.c)
 
+if (CONFIG_THREAD_TPERF)
+  sdk_library_add_sources(./ot_tperf.c)
+  sdk_add_private_compile_definitions(-DCONFIG_THREAD_TPERF=1)
+endif()
+
 if (NOT CONFIG_MATTER)
   sdk_library_add_sources(./ot_freertos.c)
 endif()

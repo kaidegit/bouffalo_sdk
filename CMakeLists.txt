@@ -66,7 +66,6 @@ if(("${CHIP}" STREQUAL "bl618dg") AND ("${CPU_MODEL}" STREQUAL "a0"))
 endif()
 
 sdk_add_compile_definitions(-DBL618DG_VERSION_A0)
-sdk_add_compile_definitions(-DBL616CL_VERSION_A0)
 
 add_subdirectory(bsp)
 add_subdirectory(components)

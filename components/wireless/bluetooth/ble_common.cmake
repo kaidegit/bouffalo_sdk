@@ -646,7 +646,11 @@ if(CONFIG_BT_ATT_PREPARE_COUNT LESS 0)
 endif()
 sdk_add_compile_definitions(-DCONFIG_BT_ATT_PREPARE_COUNT=${CONFIG_BT_ATT_PREPARE_COUNT})
 endif()
-sdk_add_compile_definitions(-DCONFIG_BLE_USING_DYNAMIC_RAM=${CONFIG_BLE_USING_DYNAMIC_RAM})
+if(CONFIG_BLE_USING_DYNAMIC_RAM)
+	sdk_add_compile_definitions(-DCONFIG_BLE_USING_DYNAMIC_RAM=1)
+else()
+	sdk_add_compile_definitions(-DCONFIG_BLE_USING_DYNAMIC_RAM=0)
+endif()
 # 
 # ##########################################
 # ############## BLE MESH ##################

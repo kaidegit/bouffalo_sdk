@@ -12,6 +12,8 @@
 #include <lwip/pbuf.h>
 #include <lwip/tcpip.h>
 #include <dhcp_server.h>
+#include <lwip/dns.h>
+#include <lwip/inet.h>
 
 #include "wl80211_mac.h"
 #include "wl80211_platform.h"
@@ -194,8 +196,8 @@ static err_t wl80211_netif_init(struct netif *net_if)
     net_if->output = etharp_output;
 
 #ifdef CFG_IPV6
-    net_if->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET |
-                    NETIF_FLAG_IGMP | NETIF_FLAG_MLD6 | NETIF_FLAG_UP;
+    net_if->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_IGMP | NETIF_FLAG_MLD6 |
+                    NETIF_FLAG_UP;
     net_if->output_ip6 = ethip6_output;
 #else
     net_if->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET | NETIF_FLAG_UP;
@@ -248,17 +250,19 @@ static void ip_got_cb(struct netif *netif)
     }
 }
 
-void _wifi_mgmr_sta_link_up(void)
+void _wifi_mgmr_sta_link_up(int use_dhcp)
 {
     netif_set_status_callback(&vif2netif[WL80211_VIF_STA], ip_got_cb);
     netif_set_link_up(&vif2netif[WL80211_VIF_STA]);
 
-    if (netifapi_dhcp_start(&vif2netif[WL80211_VIF_STA]) == ERR_OK) {
-        wl80211_printf("start dhcpc success.\n");
-    } else {
-        // system in strange state, abort it.
-        wl80211_printf("start dhcpc fail.\n");
-        abort();
+    if (use_dhcp) {
+        if (netifapi_dhcp_start(&vif2netif[WL80211_VIF_STA]) == ERR_OK) {
+            wl80211_printf("start dhcpc success.\n");
+        } else {
+            // system in strange state, abort it.
+            wl80211_printf("start dhcpc fail.\n");
+            abort();
+        }
     }
 }
 
@@ -298,6 +302,39 @@ void _wifi_mgmr_ip_got_dump(void)
                    (ip4_addr_get_u32(ip_2_ip4(&netif->ip_addr)) >> 16) & 0xff,
                    (ip4_addr_get_u32(ip_2_ip4(&netif->ip_addr)) >> 24) & 0xff,
                    32 - __builtin_clz(ip4_addr_get_u32(ip_2_ip4(&netif->netmask))), state, connected);
+}
+
+int wifi_mgmr_sta_ip_get(uint32_t *addr, uint32_t *mask, uint32_t *gw, uint32_t *dns)
+{
+    struct netif *netif = &vif2netif[WL80211_VIF_STA];
+    const ip_addr_t *dns_addr;
+    *addr = ip4_addr_get_u32(netif_ip4_addr(netif));
+    *mask = ip4_addr_get_u32(netif_ip4_netmask(netif));
+    *gw = ip4_addr_get_u32(netif_ip4_gw(netif));
+
+    dns_addr = dns_getserver(0);
+    *dns = ip4_addr_get_u32(ip_2_ip4(dns_addr));
+
+    return 0;
+}
+
+int wifi_mgmr_sta_ip_set(uint32_t ip, uint32_t mask, uint32_t gw, uint32_t dns)
+{
+    struct netif *netif = &vif2netif[WL80211_VIF_STA];
+    ip_addr_t dns_addr;
+    ip_addr_t _ip, _mask, _gw;
+
+    ip_addr_set_ip4_u32_val(_ip, ip);
+    ip_addr_set_ip4_u32_val(_mask, mask);
+    ip_addr_set_ip4_u32_val(_gw, gw);
+    netifapi_netif_set_addr(netif, (const ip4_addr_t *)&_ip, (const ip4_addr_t *)&_mask, (const ip4_addr_t *)&_gw);
+
+    if (dns != 0) {
+        ip_addr_set_ip4_u32_val(dns_addr, dns);
+        dns_setserver(0, &dns_addr);
+    }
+
+    return 0;
 }
 
 void _wifi_mgmr_ap_stop_dhcpd(void)
@@ -350,5 +387,54 @@ void _wifi_mgmr_ap_start_dhcpd(bool use_ipcfg, bool use_dhcpd, int start, int li
     } else {
         netifapi_netif_set_link_up(ap_netif);
     }
+}
+
+#define SET_IPV4_USAGE                                             \
+    "set_ipv4 [ip] [dns] [gw] [mask]\r\n"                          \
+    "\t ip: set static ip\r\n"                                     \
+    "\t dns: set local host dns\r\n"                               \
+    "\t gw: set local host gate way. default is 255.255.255.0\r\n" \
+    "\t mask: set local host mask. default is 255.255.255.0\r\n"
+
+void set_ipv4_cmd(int argc, char **argv)
+{
+    char *addr, *mask, *gw, *dns;
+    if (argc < 3) {
+        printf("%s", SET_IPV4_USAGE);
+        return;
+    }
+
+    /* ip addr */
+    if (argc > 1) {
+        addr = argv[1];
+    } else {
+        addr = "127.0.0.1";
+    }
+
+    /* ip dns */
+    if (argc > 2) {
+        dns = argv[2];
+    } else {
+        dns = "0.0.0.0";
+    }
+
+    /* ip gw */
+    if (argc > 3) {
+        gw = argv[3];
+    } else {
+        gw = "255.255.255.0";
+    }
+
+    /* ip mask */
+    if (argc > 4) {
+        mask = argv[4];
+    } else {
+        mask = "255.255.255.0";
+    }
+
+    printf("addr:%s,mask:%s,gw:%s,dns:%s\r\n", addr, mask, gw, dns);
+
+    wifi_mgmr_sta_ip_set(inet_addr(addr), inet_addr(mask), inet_addr(gw), inet_addr(dns));
+    return;
 }
 #endif

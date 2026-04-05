@@ -23,6 +23,11 @@
 #include "ble_cli_cmds.h"
 #include "hci_driver.h"
 #include "hci_core.h"
+
+#if defined(CONFIG_BT_BREDR)
+extern int bredr_cli_register(void);
+#endif
+
 #if defined(CONFIG_BT_SETTINGS)
 #include "bflb_mtd.h"
 #include "easyflash.h"
@@ -123,3 +128,23 @@ int main(void)
     while (1) {
     }
 }
+#if defined(BL616CL)
+#include "mm.h"
+#include "bl616cl_glb.h"
+
+int heap_add_em(int argc, char **argv)
+{
+    extern uint8_t __LD_CONFIG_EM_SEL;
+    volatile uint32_t em_size;
+    em_size = (uint32_t)&__LD_CONFIG_EM_SEL;
+
+    if (em_size > 0) {
+        uint32_t em_heap_addr = 0x21020000 - em_size;
+        GLB_Set_EM_Sel(GLB_WRAM160KB_EM0KB);
+        mm_register_heap(MM_HEAP_EM_0, "EM", MM_ALLOCATOR_TLSF,
+                         (void *)em_heap_addr, em_size);
+    }
+    return 0;
+}
+SHELL_CMD_EXPORT_ALIAS(heap_add_em, heap_add_em, heap add EM.);
+#endif /* BL616CL */

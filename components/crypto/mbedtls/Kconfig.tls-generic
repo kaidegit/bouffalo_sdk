@@ -291,7 +291,9 @@ config MBEDTLS_CIPHER_ALL_ENABLED
 	select MBEDTLS_CIPHER_GCM_ENABLED
 	select MBEDTLS_CIPHER_MODE_XTS_ENABLED
 	select MBEDTLS_CIPHER_MODE_CBC_ENABLED
+	select MBEDTLS_CIPHER_MODE_CFB_ENABLED
 	select MBEDTLS_CIPHER_MODE_CTR_ENABLED
+	select MBEDTLS_CIPHER_MODE_OFB_ENABLED
 	select MBEDTLS_CHACHAPOLY_AEAD_ENABLED
 
 config MBEDTLS_SOME_AEAD_CIPHER_ENABLED
@@ -359,8 +361,14 @@ config MBEDTLS_CIPHER_MODE_CBC_ENABLED
 	bool "Cipher Block Chaining mode (CBC) for symmetric ciphers"
 	default y if !NET_L2_OPENTHREAD
 
+config MBEDTLS_CIPHER_MODE_CFB_ENABLED
+	bool "Cipher Feedback mode (CFB) for symmetric ciphers"
+
 config MBEDTLS_CIPHER_MODE_CTR_ENABLED
 	bool "Counter Block Cipher mode (CTR) for symmetric ciphers"
+
+config MBEDTLS_CIPHER_MODE_OFB_ENABLED
+	bool "Output Feedback mode (OFB) for symmetric ciphers"
 
 endif # MBEDTLS_SOME_CIPHER_ENABLED
 
@@ -382,6 +390,7 @@ config MBEDTLS_HASH_ALL_ENABLED
 	select MBEDTLS_SHA256
 	select MBEDTLS_SHA384
 	select MBEDTLS_SHA512
+	select MBEDTLS_SHA3
 	select MBEDTLS_POLY1305
 
 config MBEDTLS_MD5
@@ -410,6 +419,9 @@ config MBEDTLS_SHA384
 
 config MBEDTLS_SHA512
 	bool "SHA-512 hash algorithm"
+
+config MBEDTLS_SHA3
+	bool "SHA-3 hash algorithm"
 
 config MBEDTLS_POLY1305
 	bool "Poly1305 hash family"

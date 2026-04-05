@@ -2395,7 +2395,7 @@ void jy6311_config_record(const audio_codec_cfg_t *cfg)
   *        2. When use multichips, all interfaces change to multichips version, and call jy6311_multichips_i2s_ext_cfg interface
   *            to config I2S extend after i2s config interface.
   */
-#define CHIP_NUM 1
+//#define CHIP_NUM 1
 
 void jy6311_config_play_record(const audio_codec_cfg_t *cfg)
 {

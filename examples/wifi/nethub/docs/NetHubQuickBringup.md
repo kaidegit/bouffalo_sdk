@@ -325,3 +325,30 @@ Check first:
 
 - whether `bflbwifid` is still running
 - whether `nethub_vchan_app` is still running
+
+### 8.4 How Do I Change the Host-Side Virtual Interface Name `mr_eth0`?
+
+The default host-side virtual network interface name comes from
+`bsp/common/msg_router/linux_host/kernel/netdev/mr_netdev.c`:
+
+```c
+#define ETH_DRV_NAME "mr_eth%d"
+```
+
+The first created interface therefore appears as `mr_eth0`.
+
+To change the interface name, update `ETH_DRV_NAME` to the pattern you want.
+For example:
+
+```c
+#define ETH_DRV_NAME "nethub%d"
+```
+
+Notes:
+
+- Keep `%d` if you want Linux to allocate names such as `nethub0`, `nethub1`,
+  and so on
+- Rebuild the host software after the change and reload the host-side kernel
+  module
+- If any local scripts or service configuration still refer to `mr_eth0`,
+  update them accordingly

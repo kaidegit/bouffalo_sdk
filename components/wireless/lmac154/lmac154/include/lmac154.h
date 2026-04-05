@@ -7,7 +7,7 @@
 
 #define VERSION_LMAC154_MAJOR 1
 #define VERSION_LMAC154_MINOR 7
-#define VERSION_LMAC154_PATCH 2
+#define VERSION_LMAC154_PATCH 3
 
 // #define VERSION_LMAC154_SRC_EXTRA_INFO "customer-1"
 
@@ -184,6 +184,15 @@ typedef struct {
 typedef void (*lmac154_txDoneCallback_t)(lmac154_tx_status_t, uint32_t *, uint32_t);
 typedef uint32_t * (*lmac154_rxDoneCallback_t)(lmac154_receiveInfo_t *, uint32_t *);
 
+/****************************************************************************//**
+ * @brief  lmac154 stack index enumeration
+ *
+ ******************************************************************************/
+typedef enum {
+    LMAC154_STACK_1 = 0,  /**< First stack (default for single stack mode) */
+    LMAC154_STACK_2 = 1,  /**< Second stack (for dual stack mode) */
+} lmac154_stack_idx_t;
+
 typedef struct __lmac154_txParam { 
     uint32_t *                  pkt;
     uint32_t                    pkt_length:8;
@@ -316,6 +325,50 @@ void lmac154_setStd2015Extra(bool isEnable);
 
 
 /****************************************************************************//**
+ * @brief  Enable first stack
+ *
+ * @param  None
+ *
+ * @return None
+ *
+*******************************************************************************/
+void lmac154_enable1stStack(void);
+
+
+/****************************************************************************//**
+ * @brief  Disable first stack
+ *
+ * @param  None
+ *
+ * @return None
+ *
+*******************************************************************************/
+void lmac154_disable1stStack(void);
+
+
+/****************************************************************************//**
+ * @brief  Enable first stack
+ *
+ * @param  None
+ *
+ * @return None
+ *
+*******************************************************************************/
+void lmac154_enable1stStack(void);
+
+
+/****************************************************************************//**
+ * @brief  Disable first stack
+ *
+ * @param  None
+ *
+ * @return None
+ *
+*******************************************************************************/
+void lmac154_disable1stStack(void);
+
+
+/****************************************************************************//**
  * @brief  Enable second stack for dual stack
  *
  * @param  None
@@ -381,14 +434,16 @@ lmac154_isr_t lmac154_getInterruptHandler(void);
 
 
 /****************************************************************************//**
- * @brief  Register rx done event callback and get m154 irq handler
+ * @brief  Register rx done event callback for specific stack and get m154 irq handler
  *
- * @param  stack_rxDoneCallback, frame received with destination panid on stack 1
+ * @param  stack_idx, which stack to register (LMAC154_STACK_1 or LMAC154_STACK_2)
+ * @param  stack_rxDoneCallback, frame received callback function
  *
  * @return The m154 irq handler
  *
 *******************************************************************************/
-lmac154_isr_t lmac154_registerEventCallback(lmac154_rxDoneCallback_t stack_rxDoneCallback);
+bool lmac154_registerEventCallback(lmac154_stack_idx_t stack_idx,
+                                   lmac154_rxDoneCallback_t stack_rxDoneCallback);
 
 /****************************************************************************//**
  * @brief  Register rx done event callback and get m154 irq handler
@@ -400,8 +455,7 @@ lmac154_isr_t lmac154_registerEventCallback(lmac154_rxDoneCallback_t stack_rxDon
  * @return The m154 irq handler
  *
 *******************************************************************************/
-lmac154_isr_t lmac154_registerEventDualCallbacks(lmac154_rxDoneCallback_t stack1_rxDoneCallback,
-                                                 lmac154_rxDoneCallback_t stack2_rxDoneCallback);
+lmac154_isr_t lmac154_getInterruptCallback(void);
 
 /****************************************************************************//**
  * @brief  Get the version number

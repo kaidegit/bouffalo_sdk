@@ -7578,6 +7578,61 @@ int bt_set_local_public_address(u8_t * bt_addr)
 	}
 	return err;
 }
+
+/*
+ * Set the local static random address.
+ *
+ * WARNING: Changing the identity address (including static random address) after
+ * pairing/bonding will invalidate IRK (Identity Resolving Key) and cause:
+ * - Bonded devices to fail in resolving the new address
+ * - Reconnection failures with previously paired devices
+ * - Loss of all existing security relationships
+ *
+ * It is strongly recommended NOT to change the random address after security
+ * (pairing/bonding) has been established with any peer device.
+ */
+int bt_set_local_random_address(const bt_addr_le_t *addr)
+{
+	struct net_buf *buf;
+	int err;
+
+	if (!addr) {
+		return -EINVAL;
+	}
+
+	if (addr->type != BT_ADDR_LE_RANDOM) {
+		BT_ERR("Invalid address type");
+		return -EINVAL;
+	}
+
+	if (!BT_ADDR_IS_STATIC(&addr->a)) {
+		BT_ERR("Invalid static random address");
+		return -EINVAL;
+	}
+
+	if (!bt_addr_le_cmp(addr, &bt_dev.id_addr[BT_ID_DEFAULT])) {
+		return 0;
+	}
+
+	bt_addr_le_copy(&bt_dev.id_addr[BT_ID_DEFAULT], addr);
+
+	buf = bt_hci_cmd_create(BT_HCI_OP_LE_SET_RANDOM_ADDRESS, sizeof(addr->a));
+	if (!buf) {
+		return -ENOBUFS;
+	}
+
+	net_buf_add_mem(buf, &addr->a, sizeof(addr->a));
+
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_LE_SET_RANDOM_ADDRESS, buf, NULL);
+	if (err) {
+		return err;
+	}
+
+	bt_addr_copy(&bt_dev.random_addr.a, &addr->a);
+	bt_dev.random_addr.type = BT_ADDR_LE_RANDOM;
+
+	return 0;
+}
 #endif
 
 int bt_le_adv_start(const struct bt_le_adv_param *param,

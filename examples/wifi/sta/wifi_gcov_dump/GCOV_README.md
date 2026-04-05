@@ -5,21 +5,36 @@
 ### 1. 准备数据
 
 ```bash
-# 在板子上运行程序并触发 GCOV dump
-bouffalo /> fatfs_init
+# 在板子上运行程序（FatFS 自动初始化）
 bouffalo /> gcov_dump
 
-# 查看 SD 卡中的文件
-bouffalo /> show
+# 上传到服务器（可选）
+bouffalo /> gcov_upload http://192.168.1.100:8080/upload
 ```
 
 ### 2. 复制 .gcda 文件到 PC
 
+**方法 1: 通过网络上传（推荐）**
+
+启动 HTTP 服务器接收文件：
+
 ```bash
-# 假设 SD 卡挂载在 /mnt/sd
-cd /home/wyb/repo/new/bouffalo_sdk/examples/wifi/sta/wifi_gcov_dump
+# 在 PC 上启动简单的 HTTP 文件接收服务器
+cd /home/wyb/repo/new0/bouffalo_sdk/examples/wifi/sta/wifi_gcov_dump
 mkdir -p gcov_data
-cp /mnt/sd/*.gcda gcov_data/
+python3 -m http.server 8080 --directory gcov_data
+
+# 或使用专用上传服务器（需要额外开发）
+# 服务器需要支持 POST /upload?filename=xxx.gcda
+```
+
+**方法 2: 通过 SD 卡复制**
+
+```bash
+# 假设通过串口工具导出文件，或使用 SD 卡
+cd /home/wyb/repo/new0/bouffalo_sdk/examples/wifi/sta/wifi_gcov_dump
+mkdir -p gcov_data
+# 将 .gcda 文件复制到 gcov_data 目录
 ```
 
 ### 3. 生成覆盖率报告
@@ -74,7 +89,7 @@ firefox gcov_report/html/index.html
 | 选项 | 说明 |
 |------|------|
 | `--coverage` | 启用代码覆盖率（等同于 `-fprofile-arcs -ftest-coverage`） |
-| `-fprofile-dir=/sd` | 指定 .gcda 文件输出到 SD 卡的 `/sd` 目录 |
+| `-fprofile-dir=/ram` | 指定 .gcda 文件输出到 RAM disk 的 `/ram` 目录 |
 | `-fprofile-info-section` | 将 GCOV 信息放到专门的 ELF section 中 |
 
 #### 方法 1: 为独立库添加（标准组件库）
@@ -88,7 +103,7 @@ firefox gcov_report/html/index.html
 # 方式 A: 添加私有编译选项（仅影响当前库）
 sdk_add_private_compile_options(
     --coverage
-    -fprofile-dir=/sd
+    -fprofile-dir=/ram
     -fprofile-info-section
 )
 ```
@@ -103,7 +118,7 @@ sdk_add_private_compile_options(
 # 定义库的通用编译选项
 set(MYLIB_COMMON_OPTIONS
     --coverage                    # 启用 GCOV
-    -fprofile-dir=/sd             # 输出到 SD 卡
+    -fprofile-dir=/ram            # 输出到 RAM disk
     -fprofile-info-section        # 使用独立 section
     -Os                           # 其他优化选项...
     -fno-builtin
@@ -127,7 +142,7 @@ target_compile_options(${LIBRARY_NAME} PRIVATE ${MYLIB_COMMON_OPTIONS})
 # 为当前组件（通常是 app 库）添加 GCOV 选项
 sdk_add_private_compile_options(
     --coverage
-    -fprofile-dir=/sd
+    -fprofile-dir=/ram
     -fprofile-info-section
 )
 ```
@@ -139,7 +154,7 @@ sdk_add_private_compile_options(
 ```cmake
 set(MACSW_COMMON_OPTIONS
     --coverage                # 第 48 行：启用代码覆盖率
-    -fprofile-dir=/sd         # 第 49 行：指定输出目录
+    -fprofile-dir=/ram        # 第 49 行：指定输出目录
     -fprofile-info-section    # 第 50 行：使用独立 section
     -Os
     -fno-builtin
@@ -156,10 +171,11 @@ target_compile_options(${MACSW_CONFIG_LIB_NAME} PRIVATE ${MACSW_COMMON_OPTIONS})
 
 #### 注意事项
 
-1. **路径前缀**: `-fprofile-dir=/sd` 指定 SD 卡挂载点，与 `gcov_flush.c` 中的 `__gcov_root = "/sd"` 配合使用
+1. **路径前缀**: `-fprofile-dir=/ram` 指定 RAM disk 挂载点，文件会自动重定向到 `/ram` 路径
 2. **Section 存储**: `-fprofile-info-section` 将 GCOV 元数据放入 ELF section，减少 RAM 占用
-3. **链接顺序**: 使用 GCOV 的库需要在链接时包含 `libgcov.a`（由 `--coverage` 自动处理）
-4. **性能影响**: GCOV 会增加代码大小和运行时开销，仅用于测试/调试
+3. **自动初始化**: FatFS 在系统启动时自动初始化，无需手动调用 `fatfs_init`
+4. **链接顺序**: 使用 GCOV 的库需要在链接时包含 `libgcov.a`（由 `--coverage` 自动处理）
+5. **性能影响**: GCOV 会增加代码大小和运行时开销，仅用于测试/调试
 
 ### 步骤 2: 编译项目
 
@@ -174,21 +190,36 @@ make CHIP=bl616 BOARD=bl616dk
 make flash CHIP=bl616 COMX=/dev/ttyUSB0
 
 # 在串口中执行
-fatfs_init
-gcov_dump
-show  # 查看 .gcda 文件
+# FatFS 会自动初始化，无需手动操作
+gcov_dump                    # 导出 GCOV 数据到 /ram
+gcov_upload http://192.168.1.100:8080/upload  # 上传到服务器（可选）
 ```
 
 ### 步骤 4: 复制数据到 PC
+
+**方法 1: 通过网络上传（推荐）**
+
+在设备上执行上传命令：
+
+```bash
+# 上传所有 .gcda 文件到 HTTP 服务器
+bouffalo /> gcov_upload http://192.168.1.100:8080/upload
+```
+
+服务器接收后会保存文件到 `gcov_data` 目录。
+
+**方法 2: 通过串口导出**
+
+如果使用串口工具，可以通过串口将文件内容导出并保存。
+
+**方法 3: SD 卡（如果支持）**
 
 ```bash
 # 创建数据目录
 mkdir -p gcov_data
 
-# 复制 .gcda 文件（假设 SD 卡挂载在 /dev/sdd1）
-sudo mount /dev/sdd1 /mnt/sd
-cp /mnt/sd/*.gcda gcov_data/
-sudo umount /mnt/sd
+# 复制 .gcda 文件
+cp /path/to/gcda/files/*.gcda gcov_data/
 ```
 
 ### 步骤 5: 运行生成脚本
@@ -213,13 +244,57 @@ gcov_report/
 │   ├── ftm_task.c.gcno
 │   └── ...
 ├── gcda_files/          # .gcda 文件（运行时生成）
-│   ├── /sd/home/wyb/repo/.../bl616.c.gcda
+│   ├── bl616.c.gcda
+│   ├── ftm_task.c.gcda
 │   └── ...
 ├── *.gcov              # gcov 生成的覆盖率数据
 ├── coverage.info       # lcov 合并的数据
 └── html/               # HTML 报告
     └── index.html      # 打开这个文件查看报告
 ```
+
+## 可用命令
+
+| 命令 | 说明 | 示例 |
+|------|------|------|
+| `gcov_dump` | 导出 GCOV 覆盖率数据到 `/ram` | `bouffalo /> gcov_dump` |
+| `gcov_upload` | 上传 .gcda 文件到 HTTP 服务器 | `bouffalo /> gcov_upload http://192.168.1.100:8080/upload` |
+
+## gcov_upload 命令详解
+
+**功能**: 将 `/ram` 目录下所有 `.gcda` 文件上传到指定的 HTTP 服务器。
+
+**用法**:
+```bash
+gcov_upload <url>
+```
+
+**参数**:
+- `url`: HTTP 服务器 URL，例如 `http://192.168.1.100:8080/upload`
+
+**服务器要求**:
+- 支持 HTTP POST 方法
+- 接收 URL 参数 `?filename=xxx.gcda`
+- 接受 `application/octet-stream` 类型的文件数据
+
+**启动 HTTP 服务器**:
+
+SDK 提供了现成的 HTTP 接收服务器，位于 `tools/byai/gcov_http_receiver.py`：
+
+```bash
+# 启动服务器
+cd /home/wyb/repo/new0/bouffalo_sdk
+python3 tools/byai/gcov_http_receiver.py
+
+# 服务器默认监听 0.0.0.0:8080
+# 接收的文件会保存到当前目录的 gcov_data/ 目录
+```
+
+服务器功能：
+- ✅ 自动接收并保存 .gcda 文件
+- ✅ 支持断点续传（文件名去重）
+- ✅ 显示上传进度和文件信息
+- ✅ 自动创建目标目录
 
 ## 安装依赖工具
 

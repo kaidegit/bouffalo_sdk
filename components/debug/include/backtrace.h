@@ -83,6 +83,14 @@ void backtrace_now(void);
 void backtrace_tasks_all(void);
 
 /**
+ * @brief Backtrace all tasks from ISR/exception context
+ *
+ * ISR-safe variant for exception handlers. It avoids scheduler APIs that may
+ * suspend/resume tasks and iterates task lists via ISR foreach helper.
+ */
+void backtrace_tasks_all_isr(void);
+
+/**
  * @brief Backtrace specified task
  *
  * @param handle  Task handle

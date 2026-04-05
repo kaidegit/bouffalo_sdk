@@ -308,6 +308,11 @@ int set_adv_channel_map(bt_gap_adv_chnl_map_t channel);
 int bt_get_local_public_address(bt_addr_le_t *adv_addr);
 int bt_get_local_ramdon_address(bt_addr_le_t *adv_addr);
 int bt_set_local_public_address(u8_t *adv_addr);
+/* Notice: Changing identity address (including static random address) after pairing
+   will invalidate IRK and cause bonded devices to fail reconnection.
+   It is strongly recommended NOT to change the random address after security
+   (pairing/bonding) has been established with any peer device.*/
+int bt_set_local_random_address(const bt_addr_le_t *addr);
 int bt_le_set_data_len(struct bt_conn *conn, u16_t tx_octets, u16_t tx_time);
 int hci_le_set_phy(struct bt_conn *conn, uint8_t all_phys,
 		  uint8_t pref_tx_phy, uint8_t pref_rx_phy, uint8_t phy_opts);

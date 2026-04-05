@@ -40,8 +40,18 @@
     MBEDTLS_INTERNAL_VALIDATE_RET( cond, MBEDTLS_ERR_SHA256_BAD_INPUT_DATA )
 #define SHA256_VALIDATE(cond)  MBEDTLS_INTERNAL_VALIDATE( cond )
 #else
-#define SHA256_VALIDATE_RET(cond)
-#define SHA256_VALIDATE(cond)
+#define SHA256_VALIDATE_RET(cond)                         \
+    do                                                    \
+    {                                                     \
+        if( !( cond ) )                                   \
+            return( MBEDTLS_ERR_SHA256_BAD_INPUT_DATA );  \
+    } while( 0 )
+#define SHA256_VALIDATE(cond)                             \
+    do                                                    \
+    {                                                     \
+        if( !( cond ) )                                   \
+            return;                                       \
+    } while( 0 )
 #endif
 
 static ATTR_NOCACHE_NOINIT_RAM_SECTION struct bflb_sha256_link_ctx_s link_ctx_temp;

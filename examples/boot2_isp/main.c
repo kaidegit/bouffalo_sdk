@@ -142,8 +142,10 @@ void bflb_sp_dump_pt_entry(pt_table_entry_config *pt_entry)
 static int bflb_sp_boot2_check_xz_fw(pt_table_id_type activeID, pt_table_stuff_config *ptStuff, pt_table_entry_config *ptEntry)
 {
     uint8_t buf[6];
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
 
-    if (BFLB_BOOT2_SUCCESS != bflb_sp_mediaboot_read(ptEntry->start_address[ptEntry->active_index], buf, sizeof(buf))) {
+    FIH_CALL(bflb_sp_mediaboot_read, fih_rc, ptEntry->start_address[ptEntry->active_index], buf, sizeof(buf));
+    if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
         BOOT2_MSG_ERR("Read fw fail\r\n");
         return 0;
     }
@@ -185,6 +187,7 @@ static int bflb_sp_boot2_do_fw_copy(pt_table_id_type active_id, pt_table_stuff_c
     uint32_t total_len = pt_entry->len;
     uint32_t deal_len = 0;
     uint32_t cur_len = 0;
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
 
     BOOT2_MSG_DBG("OTA copy src address %x, dest address %x, total len %d\r\n", src_address, dest_address, total_len);
 
@@ -199,7 +202,8 @@ static int bflb_sp_boot2_do_fw_copy(pt_table_id_type active_id, pt_table_stuff_c
             cur_len = BFLB_BOOT2_READBUF_SIZE;
         }
 
-        if (BFLB_BOOT2_SUCCESS != bflb_sp_mediaboot_read(src_address, g_boot2_read_buf, cur_len)) {
+        FIH_CALL(bflb_sp_mediaboot_read, fih_rc, src_address, g_boot2_read_buf, cur_len);
+        if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
             return BFLB_BOOT2_FLASH_READ_ERROR;
         }
 

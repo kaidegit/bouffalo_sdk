@@ -19,8 +19,9 @@
 
 static struct {
     uint8_t autoconnect : 1;
-    uint8_t powersave : 1;
-} wifi_mgmr_glb = {0};
+    uint8_t powersave   : 1;
+    uint8_t use_dhcp    : 1;
+} wifi_mgmr_glb = { 0 };
 static uint16_t wifi_mgmr_listen_itv = 0;
 
 static void auth_cipher_convert(struct wl80211_scan_result_item *result, uint8_t *auth, uint8_t *cipher);
@@ -41,8 +42,8 @@ struct wifi_mgmr_ap_netif_cfg {
 
 static struct wifi_mgmr_ap_netif_cfg wifi_mgmr_ap_netif_cfg;
 
-extern void *_wifi_mgmr_sta_link_up(void);
-extern void *_wifi_mgmr_sta_link_down(void);
+extern void _wifi_mgmr_sta_link_up(int use_dhcp);
+extern void _wifi_mgmr_sta_link_down(void);
 extern void _wifi_mgmr_ip_got_dump(void);
 extern void _wifi_mgmr_ap_start_dhcpd(bool use_ipcfg, bool use_dhcpd, int start, int limit, uint32_t ap_ipaddr,
                                       uint32_t ap_mask);
@@ -110,7 +111,8 @@ static void connect_ind_dump(uint16_t status_code, uint16_t ieeetypes_code)
     wl80211_printf("=================================================================\r\n");
 }
 
-static void auto_powersave(struct timeout_s *timeout) {
+static void auto_powersave(struct timeout_s *timeout)
+{
     if (wifi_mgmr_glb.powersave) {
         wifi_mgmr_sta_ps_enter();
     }
@@ -119,7 +121,7 @@ static void auto_powersave(struct timeout_s *timeout) {
 
 static void connected_tsk(void)
 {
-    _wifi_mgmr_sta_link_up();
+    _wifi_mgmr_sta_link_up(wifi_mgmr_glb.use_dhcp);
 
     if (wifi_mgmr_glb.powersave) {
         timeout_start_new(auto_powersave, NULL, 5000);
@@ -401,7 +403,9 @@ int wifi_sta_connect(const char *ssid, const char *key, const char *bssid, const
         conn_params.channel = wl80211_freq_to_channel(freq);
     }
 
-    (void)use_dhcp;
+    rtos_lock();
+    wifi_mgmr_glb.use_dhcp = use_dhcp;
+    rtos_unlock();
 
     wl80211_sta_connect(&conn_params);
     return 0;
@@ -732,6 +736,10 @@ int wifi_mgmr_sta_connect(const wifi_mgmr_sta_connect_params_t *config)
     /* listen_interval */
     params.listen_interval = wifi_mgmr_listen_itv;
 
+    rtos_lock();
+    wifi_mgmr_glb.use_dhcp = config->use_dhcp;
+    rtos_unlock();
+
     /* start scan and connect */
     ret = wl80211_sta_connect(&params);
     if (ret) {
@@ -759,11 +767,6 @@ uint16_t wifi_mgmr_sta_get_listen_itv(void)
 }
 
 int wifi_mgmr_ap_state_get(void)
-{
-    return -1;
-}
-
-int wifi_mgmr_sta_ip_set(uint32_t ip, uint32_t mask, uint32_t gw, uint32_t dns)
 {
     return -1;
 }
@@ -1058,6 +1061,7 @@ int wifi_mgmr_ap_start(const wifi_mgmr_ap_params_t *config)
 
     return 0;
 }
+
 int wifi_mgmr_ap_stop(void)
 {
 #if !defined(__NuttX__)

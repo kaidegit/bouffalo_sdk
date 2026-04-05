@@ -125,7 +125,7 @@ else()
         nuttx/libc/string/lib_index.c
         nuttx/libc/string/lib_memccpy.c
         nuttx/libc/string/lib_memchr.c
-        nuttx/libc/string/lib_memcmp.c
+        # nuttx/libc/string/lib_memcmp.c
         # nuttx/libc/string/lib_memcpy.c  # use lib_vikmemcpy.c
         nuttx/libc/string/lib_memmove.c
         nuttx/libc/string/lib_memrchr.c
@@ -148,8 +148,15 @@ else()
         nuttx/libc/string/lib_strtok.c
         nuttx/libc/string/lib_strtokr.c
         # nuttx/libc/string/lib_isbasedigit.c nuttx/libc/string/lib_skipspace.c
-        nuttx/libc/string/lib_vikmemcpy.c
+        # nuttx/libc/string/lib_vikmemcpy.c
     )
+
+    if(NOT CONFIG_BOOT2)
+        sdk_library_add_sources(
+            nuttx/libc/string/lib_memcmp.c
+            nuttx/libc/string/lib_vikmemcpy.c
+        )
+    endif()
 
 endif()
 

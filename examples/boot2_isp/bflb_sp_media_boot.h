@@ -40,8 +40,9 @@
 #include "stdio.h"
 #include "string.h"
 #include "bflb_sp_bootinfo.h"
+#include "bflb_sp_common.h"
 
-int32_t bflb_sp_mediaboot_read(uint32_t addr, uint8_t *data, uint32_t len);
+fih_ret bflb_sp_mediaboot_read(uint32_t addr, uint8_t *data, uint32_t len);
 int32_t bflb_sp_mediaboot_main(uint32_t cpu_boot_header_addr[BFLB_SP_BOOT2_CPU_GROUP_MAX], uint8_t cpu_roll_back[BFLB_SP_BOOT2_CPU_GROUP_MAX], uint8_t roll_back);
 void bflb_sp_boot2_show_timer(void);
 

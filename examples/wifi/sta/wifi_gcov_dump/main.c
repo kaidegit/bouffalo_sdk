@@ -33,6 +33,7 @@
 
 #include "bflb_irq.h"
 #include "bflb_uart.h"
+#include "bflb_mtd.h"
 
 #include "rfparam_adapter.h"
 #include "async_event.h"
@@ -60,6 +61,7 @@ static struct bflb_device_s *uart0;
 
 extern void shell_init_with_task(struct bflb_device_s *shell);
 extern void wifi_event_handler(async_input_event_t ev, void *priv);
+extern int filesystem_init(void);
 
 /****************************************************************************
  * Private Function Prototypes
@@ -148,8 +150,16 @@ int main(void)
     register_all_gcov_info();
     board_init();
 
+    /* Initialize MTD subsystem (reads partition table from flash) */
+    bflb_mtd_init();
+
     uart0 = bflb_device_get_by_name("uart0");
     shell_init_with_task(uart0);
+
+    /* Initialize FatFS on RAM disk (PSRAM) */
+    if (filesystem_init() < 0) {
+        LOG_E("Failed to initialize FatFS filesystem\r\n");
+    }
 
     if (0 != rfparam_init(0, NULL, 0)) {
         LOG_I("PHY RF init failed!\r\n");

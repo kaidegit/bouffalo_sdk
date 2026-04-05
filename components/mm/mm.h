@@ -45,6 +45,7 @@ typedef enum {
     MM_HEAP_PSRAM_0,     ///< PSRAM 0
     MM_HEAP_OCRAM_0,     ///< Internal OCRAM 0
     MM_HEAP_WRAM_0,      ///< Internal WRAM 0
+    MM_HEAP_EM_0,        ///< Internal EM 0
 
     MM_HEAP_MAX ///< Maximum heap count
 } mm_heap_type_t;
@@ -82,6 +83,7 @@ typedef enum {
 #define MM_FLAG_HEAP_OCRAM_0  (MM_HEAP_OCRAM_0 << MM_FLAG_HEAP_SHIFT) ///< OCRAM 0
 #define MM_FLAG_HEAP_WRAM_0   (MM_HEAP_WRAM_0 << MM_FLAG_HEAP_SHIFT)  ///< WRAM 0
 #define MM_FLAG_HEAP_PSRAM_0  (MM_HEAP_PSRAM_0 << MM_FLAG_HEAP_SHIFT) ///< PSRAM 0
+#define MM_FLAG_HEAP_EM_0     (MM_HEAP_EM_0 << MM_FLAG_HEAP_SHIFT)    ///< EM 0
 #define MM_FLAG_HEAP_DEFAULT  MM_FLAG_HEAP_OCRAM_0                    ///< Default heap
 
 /* ========================================================================

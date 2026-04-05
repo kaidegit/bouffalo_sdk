@@ -4,6 +4,10 @@
 #include "bflb_flash.h"
 #include "coredump.h"
 
+#if defined(CONFIG_BACKTRACE)
+#include "backtrace.h"
+#endif
+
 #define BUILD_ID_LEN 20
 uint8_t core_build_id[BUILD_ID_LEN];
 uint8_t elf_build_id[BUILD_ID_LEN] __attribute__((weak));
@@ -70,11 +74,14 @@ int coredump_xip_flash_write(uint32_t lma, uint8_t *lma_xip, size_t len)
 
     return ret;
 }
-
+#if defined(CONFIG_BACKTRACE)
+static int backtrace_once;
+#endif
 void coredump_run(void)
 {
-    while (&_dump_sections == 0) {
-        asm("nop");
+    if(&_dump_sections == 0) {
+        printf("\r\n-+-+-+- NO DUMP SECTIONS +-+-+-+\r\n");
+        goto __dump_end;
     }
     bool coredump_flash_disable = 0;
     uint32_t lma = coredump_flash_addr;
@@ -105,6 +112,16 @@ void coredump_run(void)
         core_bin_end_hook(coredump_flash_addr);
     }
     printf("\r\n-+-+-+- BFLB COREDUMP END +-+-+-+\r\n");
+
+__dump_end:
+
+#if defined(CONFIG_BACKTRACE)
+    if(!backtrace_once) {
+        backtrace_once = 1;
+        backtrace_tasks_all_isr();
+    }
+#endif
+
     while (1) {
         asm("nop");
     }

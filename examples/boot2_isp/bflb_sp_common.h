@@ -38,10 +38,134 @@
 
 #include "stdint.h"
 
+#ifndef BFLB_SP_FAULT_INJECTION_ENABLE
+#define BFLB_SP_FAULT_INJECTION_ENABLE 0
+#endif
+
 #if defined(BL702L)
 #define BFLB_BOOT2_XZ_MALLOC_BUF_SIZE 40 * 1024
 #else
 #define BFLB_BOOT2_XZ_MALLOC_BUF_SIZE 80 * 1024
+#endif
+
+
+#if BFLB_SP_FAULT_INJECTION_ENABLE
+
+#define FIH_POSITIVE_VALUE    0x5555AAAA
+#define FIH_NEGATIVE_VALUE    0xAAAA5555
+#define _FIH_MASK_VALUE       0xA5C35A3C
+
+typedef struct {
+    volatile int32_t val;
+    volatile int32_t msk;
+} fih_int;
+
+typedef fih_int fih_ret;
+
+#define FIH_INT_INIT(x)       ((fih_ret){ (x), (x) ^ _FIH_MASK_VALUE })
+#define FIH_SUCCESS           FIH_INT_INIT(FIH_POSITIVE_VALUE)
+#define FIH_FAILURE           FIH_INT_INIT(FIH_NEGATIVE_VALUE)
+
+void fih_panic_loop(void);
+int32_t fih_int_decode(fih_ret value);
+fih_ret fih_ret_encode_status(int32_t ret);
+int fih_eq_encoded(fih_ret left, fih_ret right);
+int fih_not_eq_encoded(fih_ret left, fih_ret right);
+void fih_set_encoded(fih_ret *slot, fih_ret value);
+void fih_call_prepare_ret(fih_ret *slot);
+fih_ret fih_ret_validate(fih_ret value);
+
+#ifndef FIH_EQ
+#define FIH_EQ(x, y) \
+    fih_eq_encoded((x), (y))
+#endif
+
+#ifndef FIH_NOT_EQ
+#define FIH_NOT_EQ(x, y) \
+    fih_not_eq_encoded((x), (y))
+#endif
+
+#ifndef FIH_SET
+#define FIH_SET(x, y)                         \
+    do {                                      \
+        fih_set_encoded(&(x), (y));           \
+    } while (0)
+#endif
+
+#ifndef FIH_DECLARE
+#define FIH_DECLARE(var, val)                 \
+    fih_ret var;                              \
+    FIH_SET(var, val)
+#endif
+
+#ifndef FIH_CALL
+#define FIH_CALL(f, ret, ...)                 \
+    do {                                      \
+        fih_call_prepare_ret(&(ret));         \
+        FIH_SET((ret), f(__VA_ARGS__));       \
+    } while (0)
+#endif
+
+#ifndef FIH_RET
+#define FIH_RET(ret)                          \
+    do {                                      \
+        return fih_ret_validate((ret));       \
+    } while (0)
+#endif
+
+#ifndef FIH_PANIC
+#define FIH_PANIC fih_panic_loop()
+#endif
+
+#else
+
+typedef int32_t fih_ret;
+
+#define FIH_INT_INIT(x)       (x)
+#define FIH_SUCCESS           0
+#define FIH_FAILURE           (-1)
+
+void fih_panic_loop(void);
+int32_t fih_int_decode(fih_ret value);
+fih_ret fih_ret_encode_status(int32_t ret);
+
+#ifndef FIH_EQ
+#define FIH_EQ(x, y) ((x) == (y))
+#endif
+
+#ifndef FIH_NOT_EQ
+#define FIH_NOT_EQ(x, y) ((x) != (y))
+#endif
+
+#ifndef FIH_SET
+#define FIH_SET(x, y)                         \
+    do {                                      \
+        (x) = (y);                            \
+    } while (0)
+#endif
+
+#ifndef FIH_DECLARE
+#define FIH_DECLARE(var, val) fih_ret var = (val)
+#endif
+
+#ifndef FIH_CALL
+#define FIH_CALL(f, ret, ...)                 \
+    do {                                      \
+        (ret) = f(__VA_ARGS__);               \
+    } while (0)
+#endif
+
+#ifndef FIH_RET
+#define FIH_RET(ret)        \
+    do {                    \
+        return (ret);       \
+    } while (0)
+#endif
+
+#ifndef FIH_PANIC
+#define FIH_PANIC fih_panic_loop()
+#endif
+
 #endif
 
 void bflb_sp_dump_data(void *datain, int len);

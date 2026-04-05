@@ -33,52 +33,18 @@ void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
     aIeeeEui64[6] = flash_id & 0xff;
 }
 
-otError otPlatRadioEnable(otInstance *aInstance) 
+otError otPlatRadioEnable(otInstance *aInstance)
 {
-    uint32_t tag;
-
-    lmac154_setStd2015Extra(true);
-    lmac154_setTxRetry(0);
-    lmac154_fptClear();
-
-    /** AIFS + preamble len + sfd + phy header + phy payload; currently, consider 42 as max enh-ack frame length */
-    lmac154_setEnhAckWaitTime((LMAC154_AIFS + 10 + (6 + 42) * 2) << LMAC154_US_PER_SYMBOL_BITS);
-    lmac154_setRxStateWhenIdle(true);
-
-    if (otRadioVar_ptr->opt.bf.isCoexEnable) {
-        lmac154_enableCoex();
-    }
-    else {
-        lmac154_disableCoex();
-    }
-#if defined (BL702L)
-    lmac154_setTxRxTransTime(0xA0);
-#endif
-#if defined (BL702L) && defined (BL616)
-    if (otRadioVar_ptr->opt.bf.isFtd) {
-        lmac154_setFramePendingMode(LMAC154_FPT_ANY);
-    }
-    else {
-        lmac154_setFramePendingMode(LMAC154_FPT_DATAREQ);
-    }
-#endif
-
-    tag = otrEnterCrit();
-    zb_timer_cfg(bflb_mtimer_get_time_us() >> LMAC154_US_PER_SYMBOL_BITS);
-    otrExitCrit(tag);
-
-    bflb_irq_attach(M154_INT_IRQn, 
-                    (irq_callback)lmac154_registerEventCallback(ot_radioRxDoneCallback), 
-                    NULL);
-    bflb_irq_enable(M154_INT_IRQn);
+    lmac154_enable1stStack();
+    lmac154_registerEventCallback(LMAC154_STACK_1, ot_radioRxDoneCallback);
 
     return OT_ERROR_NONE;
 }
 
-otError otPlatRadioDisable(otInstance *aInstance) 
+otError otPlatRadioDisable(otInstance *aInstance)
 {
-    bflb_irq_disable(M154_INT_IRQn);
-    lmac154_disableRx();
+    lmac154_disable1stStack();
+    lmac154_registerEventCallback(LMAC154_STACK_1, NULL);
 
     return OT_ERROR_NONE;
 }
