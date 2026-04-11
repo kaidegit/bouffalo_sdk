@@ -89,6 +89,15 @@
 #define LCD_COLOR_DEPTH              NT35510_DBI_COLOR_DEPTH
 #define _LCD_FUNC_DEFINE(_func, ...) nt35510_dbi_##_func(__VA_ARGS__)
 
+#elif defined LCD_DBI_ST7789V
+
+#include "mipi_dbi/st7789v_dbi.h"
+#define LCD_INTERFACE_TYPE           LCD_INTERFACE_DBI
+#define LCD_W                        ST7789V_DBI_W
+#define LCD_H                        ST7789V_DBI_H
+#define LCD_COLOR_DEPTH              ST7789V_DBI_COLOR_DEPTH
+#define _LCD_FUNC_DEFINE(_func, ...) st7789v_dbi_##_func(__VA_ARGS__)
+
 #elif defined LCD_DBI_ST7796
 
 #include "mipi_dbi/st7796_dbi.h"

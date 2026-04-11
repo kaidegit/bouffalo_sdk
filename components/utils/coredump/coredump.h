@@ -16,4 +16,7 @@ void core_bin_start_hook(uint32_t *lma, size_t len);
 void core_bin_sections_hook(uint32_t *lma, uint8_t *lma_xip, size_t len);
 void core_bin_end_hook(uint32_t header_lma);
 
+#undef printf
+#undef puts
+
 #endif /* __COREDUMP_H__ */

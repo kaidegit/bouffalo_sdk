@@ -21,6 +21,7 @@
     LCD_DBI_ILI9341
     LCD_DBI_JD9853
     LCD_DBI_NT35510
+    LCD_DBI_ST7789V
     LCD_DBI_ST7796
     LCD_DBI_ST77926 (support qspi)
     LCD_DBI_SPD2010 (support qspi)
@@ -289,6 +290,88 @@
         1: enable
     */
    #define NT35510_DBI_DIR_MIRROR 0
+
+
+/* dbi st7789v config */
+#elif defined LCD_DBI_ST7789V
+
+    /* Selecting interface type, more configuration of peripherals comes later
+        1: DBI peripheral, supported functions: spi-4wire,
+    */
+    #define LCD_DBI_INTERFACE_TYPE 1
+
+    // #define LCD_DBI_WORK_MODE 3
+    /* Selecting pixel format
+        1: rgb565
+    */
+    #define ST7789V_DBI_PIXEL_FORMAT 1
+
+    /* LCD width and height */
+    #define ST7789V_DBI_W 320
+    #define ST7789V_DBI_H 480
+
+    /* The offset of the area can be displayed */
+    #define ST7789V_DBI_OFFSET_X 0
+    #define ST7789V_DBI_OFFSET_Y 0
+
+    /* Color RGB order, Some screens are required 
+        0: R-G-B
+        1: B-G-R
+    */
+   #define ST7789V_DBI_COLOR_ORDER 0
+
+    /* Color reversal, Some screens are required
+        0: disable
+        1: enable
+    */
+   #define ST7789V_DBI_COLOR_REVERSAL 0
+
+    /* Display direction X-axis mirroring, Some screens are required
+        0: disable
+        1: enable
+    */
+   #define ST7789V_DBI_DIR_MIRROR 0
+
+
+    /* dbi st77926 config */
+#elif defined LCD_DBI_ST77926
+
+    /* Selecting interface type, more configuration of peripherals comes later
+        1: DBI peripheral, supported functions: typeC-3wire, typeC-4wire, typeB-x8(8080), QSPI; (support chips: bl616, bl618dg, bl618dg),
+    */
+    #define LCD_DBI_INTERFACE_TYPE 1
+
+    /* Selecting pixel format
+        1: rgb565 (16-bit, output rgb565)
+        2: nrgb8888 (32-bit, output rgb888)
+    */
+    #define ST77926_DBI_PIXEL_FORMAT 1
+
+    /* ST77926 LCD width and height */
+    #define ST77926_DBI_W 320
+    #define ST77926_DBI_H 480
+
+    /* The offset of the area can be displayed */
+    #define ST77926_DBI_OFFSET_X 0
+    #define ST77926_DBI_OFFSET_Y 0
+
+    /* Color RGB order, Some screens are required 
+        0: R-G-B
+        1: B-G-R
+    */
+   #define ST77926_DBI_COLOR_ORDER 0
+
+    /* Color reversal, Some screens are required
+        0: disable
+        1: enable
+    */
+    #define ST77926_DBI_COLOR_REVERSAL 1
+
+    /* Display direction X-axis mirroring, Some screens are required
+        0: disable
+        1: enable
+    */
+   #define ST77926_DBI_DIR_MIRROR 0
 
 
    /* dbi st7796 config */

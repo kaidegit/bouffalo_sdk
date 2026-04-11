@@ -11,6 +11,9 @@
 #define BUILD_ID_LEN 20
 uint8_t core_build_id[BUILD_ID_LEN];
 uint8_t elf_build_id[BUILD_ID_LEN] __attribute__((weak));
+static uint32_t coredump_flash_addr;
+static size_t coredump_flash_size;
+int skip_coredump;
 
 static size_t get_size_of_sections(void)
 {
@@ -37,8 +40,15 @@ static void coredump_print_n_k(uintptr_t addr, uintptr_t lma_addr, uint32_t len,
     uint32_t seg;
 #define COREDUMP_PRINT_SEG_N_K 1
     for (seg = 0; seg * COREDUMP_PRINT_SEG_N_K * 1024 < len; seg++) {
+        if(1 == skip_coredump) {
+            return;
+        }
         printed_len = seg * COREDUMP_PRINT_SEG_N_K * 1024;
         coredump_print(addr + printed_len, lma_addr + printed_len, len - printed_len >= COREDUMP_PRINT_SEG_N_K * 1024 ? COREDUMP_PRINT_SEG_N_K * 1024 : len - printed_len, desc);
+        if('$' == bflb_uart_getchar(bflb_device_get_by_name("uart0"))) {
+            skip_coredump = 1;
+            return;
+        }
     }
 }
 
@@ -47,8 +57,6 @@ static void coredump_print_n_k(uintptr_t addr, uintptr_t lma_addr, uint32_t len,
  *
  * @return result
  */
-static uint32_t coredump_flash_addr;
-static size_t coredump_flash_size;
 void core_partition_init(uint32_t flash_addr, size_t flash_size)
 {
     coredump_flash_addr = flash_addr;
@@ -79,8 +87,10 @@ static int backtrace_once;
 #endif
 void coredump_run(void)
 {
+__restart:
+    skip_coredump = 0;
     if(&_dump_sections == 0) {
-        printf("\r\n-+-+-+- NO DUMP SECTIONS +-+-+-+\r\n");
+        puts("\r\n-+-+-+- NO DUMP SECTIONS +-+-+-+\r\n");
         goto __dump_end;
     }
     bool coredump_flash_disable = 0;
@@ -111,7 +121,7 @@ void coredump_run(void)
     if (!coredump_flash_disable) {
         core_bin_end_hook(coredump_flash_addr);
     }
-    printf("\r\n-+-+-+- BFLB COREDUMP END +-+-+-+\r\n");
+    puts("\r\n-+-+-+- BFLB COREDUMP END +-+-+-+\r\n");
 
 __dump_end:
 
@@ -123,6 +133,9 @@ __dump_end:
 #endif
 
     while (1) {
+        if('@' == bflb_uart_getchar(bflb_device_get_by_name("uart0"))) {
+            goto __restart;
+        }
         asm("nop");
     }
 }

@@ -19,5 +19,7 @@ if(CONFIG_MEM_TLSF_EN)
 endif()
 
 if(CONFIG_MEM_HEAP5_EN)
-
+    sdk_add_include_directories(heap5)
+    sdk_library_add_sources(heap5/heap5.c)
+    sdk_library_add_sources(heap5/heap5_allocator.c)
 endif()

@@ -109,6 +109,8 @@ static void dvp_start_task(void *pvParameters)
         pbuff_frame.x_end = cam_config.resolution_x - 1;
         pbuff_frame.y_end = cam_config.resolution_y - 1;
 
+        bflb_l1c_dcache_invalidate_range(pbuff_frame.elem_base.frame_addr, (cam_config.resolution_x) * (cam_config.resolution_y) * 2);
+
         /* push all */
         for (uint8_t i = 0; i < OUTPUT_QUEUE_NUM_MAX; i++) {
             ret = frame_queue_push(g_yuyv_frame_ctrl, (frame_elem_t *)&pbuff_frame, i, 0);
@@ -153,8 +155,8 @@ int dvp_cam_task_init(void)
     DVP_INFO("dvp y: %d\r\n", cam_config.resolution_y);
 
     uint32_t dvp_size = cam_config.resolution_x * cam_config.resolution_y * 2;
-    if (dvp_size > YUYV_FRAME_SIZE) {
-        DVP_ERR("dvp size over: dvp:%d, buff:%d\r\n", dvp_size, YUYV_FRAME_SIZE);
+    if (dvp_size > CONFIG_YUYV_FRAME_SIZE) {
+        DVP_ERR("dvp size over: dvp:%d, buff:%d\r\n", dvp_size, CONFIG_YUYV_FRAME_SIZE);
         return -2;
     }
 

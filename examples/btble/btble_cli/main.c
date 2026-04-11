@@ -141,7 +141,7 @@ int heap_add_em(int argc, char **argv)
     if (em_size > 0) {
         uint32_t em_heap_addr = 0x21020000 - em_size;
         GLB_Set_EM_Sel(GLB_WRAM160KB_EM0KB);
-        mm_register_heap(MM_HEAP_EM_0, "EM", MM_ALLOCATOR_TLSF,
+        mm_register_heap(MM_HEAP_EM_0, "EM", MM_ALLOCATOR_HEAP5,
                          (void *)em_heap_addr, em_size);
     }
     return 0;

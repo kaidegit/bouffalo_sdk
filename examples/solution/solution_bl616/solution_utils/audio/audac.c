@@ -49,9 +49,9 @@ static EventGroupHandle_t audio_play_event_group;
 static struct bflb_device_s *audac_hd;
 static struct bflb_device_s *audac_dma_hd;
 
-static ATTR_NOCACHE_RAM_SECTION __ALIGNED(32) struct bflb_dma_channel_lli_pool_s dma_lli_pool[AUDIO_OUT_FRAME_NUM];
+static ATTR_NOCACHE_RAM_SECTION __ALIGNED(32) struct bflb_dma_channel_lli_pool_s dma_lli_pool[CONFIG_AUDIO_OUT_FRAME_NUM];
 
-static audio_out_frame_t audac_using_frame[AUDIO_OUT_FRAME_NUM];
+static audio_out_frame_t audac_using_frame[CONFIG_AUDIO_OUT_FRAME_NUM];
 static volatile uint16_t audac_using_num;
 
 /* audio_dma_isr */
@@ -76,7 +76,7 @@ ATTR_TCM_SECTION static void audac_dma_isr(void *arg)
     }
 
     /* get new buffer frame */
-    for (frame_index = 0; frame_index < (AUDIO_OUT_FRAME_NUM / 3); frame_index++) {
+    for (frame_index = 0; frame_index < (CONFIG_AUDIO_OUT_FRAME_NUM / 3); frame_index++) {
         ret = frame_queue_output_pop(g_audio_out_frame_ctrl, (frame_elem_t *)&audac_using_frame[frame_index], audio_out_out_queue_audac_id, 0);
         if (ret < 0) {
             break;
@@ -101,8 +101,8 @@ ATTR_TCM_SECTION static void audac_dma_isr(void *arg)
         dma_lli_pool[lli_index].src_addr = (uint32_t)(audac_using_frame[lli_index].elem_base.frame_addr);
         dma_lli_pool[lli_index].dst_addr = DMA_ADDR_AUDAC_TDR;
 #if (AUDAC_DMA_AUTO_DELE_EN)
-        if (queue_waiting_num > AUDIO_OUT_FRAME_NUM / 4) {
-            dma_lli_pool[lli_index].control.bits.TransferSize = audac_using_frame[lli_index].data_size / 2 - (queue_waiting_num - AUDIO_OUT_FRAME_NUM / 4);
+        if (queue_waiting_num > CONFIG_AUDIO_OUT_FRAME_NUM / 4) {
+            dma_lli_pool[lli_index].control.bits.TransferSize = audac_using_frame[lli_index].data_size / 2 - (queue_waiting_num - CONFIG_AUDIO_OUT_FRAME_NUM / 4);
         } else {
             dma_lli_pool[lli_index].control.bits.TransferSize = audac_using_frame[lli_index].data_size / 2;
         }
@@ -202,7 +202,7 @@ static void audio_play_resume_task(void *pvParameters)
         AUDAC_DBG("[audac] audio play resume\r\n");
 
         /* get more buffers */
-        for (frame_index = 1; frame_index < (AUDIO_OUT_FRAME_NUM / 3); frame_index++) {
+        for (frame_index = 1; frame_index < (CONFIG_AUDIO_OUT_FRAME_NUM / 3); frame_index++) {
             ret = frame_queue_output_pop(g_audio_out_frame_ctrl, (frame_elem_t *)&audac_using_frame[frame_index], audio_out_out_queue_audac_id, 0);
             if (ret < 0) {
                 break;
@@ -219,8 +219,8 @@ static void audio_play_resume_task(void *pvParameters)
             dma_lli_pool[lli_index].src_addr = (uint32_t)(audac_using_frame[lli_index].elem_base.frame_addr);
             dma_lli_pool[lli_index].dst_addr = DMA_ADDR_AUDAC_TDR;
 #if (AUDAC_DMA_AUTO_DELE_EN)
-            if (queue_waiting_num > AUDIO_OUT_FRAME_NUM / 4) {
-                dma_lli_pool[lli_index].control.bits.TransferSize = audac_using_frame[lli_index].data_size / 2 - (queue_waiting_num - AUDIO_OUT_FRAME_NUM / 4);
+            if (queue_waiting_num > CONFIG_AUDIO_OUT_FRAME_NUM / 4) {
+                dma_lli_pool[lli_index].control.bits.TransferSize = audac_using_frame[lli_index].data_size / 2 - (queue_waiting_num - CONFIG_AUDIO_OUT_FRAME_NUM / 4);
             } else {
                 dma_lli_pool[lli_index].control.bits.TransferSize = audac_using_frame[lli_index].data_size / 2;
             }
@@ -251,7 +251,7 @@ int audio_play_rate_convert_task_init(void)
     AUDAC_INFO("audio play rate_convert init\r\n");
 
     /* audio_play_rate_convert queue */
-    audio_play_rate_convert_queue = xQueueCreate(AUDIO_OUT_FRAME_NUM, sizeof(audio_out_frame_t));
+    audio_play_rate_convert_queue = xQueueCreate(CONFIG_AUDIO_OUT_FRAME_NUM, sizeof(audio_out_frame_t));
 
     /* audio_play_rate_convert task */
     xTaskCreate(audio_play_rate_convert_task, (char *)"play_rate_convert_task", 256, NULL, AUDAC_TASK_PRIORITY_MAIN - 2, &audio_play_rate_convert_task_hd);
@@ -332,7 +332,7 @@ static void audac_dma_init(void)
     bflb_dma_channel_init(audac_dma_hd, &audac_dma_cfg);
     bflb_dma_channel_irq_attach(audac_dma_hd, audac_dma_isr, NULL);
 
-    for (uint8_t i = 0; i < AUDIO_OUT_FRAME_NUM; i++) {
+    for (uint8_t i = 0; i < CONFIG_AUDIO_OUT_FRAME_NUM; i++) {
         dma_lli_pool[i].control.WORD = bflb_dma_feature_control(audac_dma_hd, DMA_CMD_GET_LLI_CONTROL, 0);
     }
 }

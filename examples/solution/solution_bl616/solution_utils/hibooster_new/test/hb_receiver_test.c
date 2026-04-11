@@ -17,7 +17,9 @@
 #include "bflb_core.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
+#endif
 
 #include "hb_receiver.h"
 
@@ -104,6 +106,9 @@ static void on_frame_complete(hb_recv_buf_desc_t *desc)
 
     free(desc->data);
 }
+
+#if IS_ENABLED(CONFIG_SHELL)
+#include "shell.h"
 
 /* hb_recv_test_create <local_port> <peer_ip> <peer_port> */
 static int cmd_hb_recv_test_create(int argc, char **argv)
@@ -299,3 +304,4 @@ SHELL_CMD_EXPORT_ALIAS(cmd_hb_recv_test_destroy, hb_recv_test_destroy, Destroy r
 SHELL_CMD_EXPORT_ALIAS(cmd_hb_recv_test_start, hb_recv_test_start, Start receiver test feeding);
 SHELL_CMD_EXPORT_ALIAS(cmd_hb_recv_test_stop, hb_recv_test_stop, Stop receiver test feeding);
 SHELL_CMD_EXPORT_ALIAS(cmd_hb_recv_test_status, hb_recv_test_status, Show receiver test status and stats);
+#endif

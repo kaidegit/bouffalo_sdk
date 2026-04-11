@@ -17,6 +17,7 @@ else
     CONFIG_MACSW_SELECT = default
     ifeq ($(CONFIG_WL80211),y)
         CONFIG_BL_WPA_SUPPLICANT =y
+        CONFIG_WL80211_WRAM_MEM_SIZE_LIMIT ?= 0x4000 # 16KB
     else
         CONFIG_FHOST=y
     endif

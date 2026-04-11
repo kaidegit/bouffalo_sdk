@@ -36,7 +36,10 @@
 
 #include "bl_sys.h"
 #include "board.h"
+
+#if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
+#endif
 
 #define DBG_TAG "MAIN"
 #include "log.h"
@@ -105,11 +108,6 @@ uint32_t g_uvc_fps = 0;
 uint32_t g_hibooster_fps = 0;
 #include "hb_start.h"
 #endif
-
-extern void shell_init_with_task(struct bflb_device_s *shell);
-extern void wifi_start_firmware_task(void *param);
-
-static struct bflb_device_s *uart0;
 
 static void fps_printf_task(void *pvParameters)
 {
@@ -181,13 +179,17 @@ void solution_init(void *param)
 {
     (void)param;
 
+#if IS_ENABLED(CONFIG_SHELL)
+    extern void shell_init_with_task(struct bflb_device_s *shell);
     /* shell init */
-    uart0 = bflb_device_get_by_name("uart0");
+    struct bflb_device_s *uart0 = bflb_device_get_by_name("uart0");
     shell_init_with_task(uart0);
     printf("\r\nShell ready\r\n");
+#endif
 
 #if IS_ENABLED(CONFIG_WIFI6)
     /* wifi init */
+    extern void wifi_start_firmware_task(void *param);
     xTaskCreate(wifi_start_firmware_task, "wifi init", 1024, NULL, 10, NULL);
     vTaskDelay(200); /* Wait for network ready */
 #endif

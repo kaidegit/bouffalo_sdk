@@ -1,4 +1,12 @@
 # Changes
+## 2026-04-08
+1. [L2CAP BR] Fix stale CID on reconnection: clear channel CIDs when destroyed so reused channel structs get fresh allocation on next connection.
+2. [host/conn] Fix connection reference leak after BR/EDR role switch: track original creation role to correctly release the sticky reference regardless of post-RSW live role.
+
+## 2026-04-07
+1. [BR/EDR] Enable role switch in default link policy settings during initialization, so the controller accepts incoming role switch requests from the peer.
+2. [host/conn] Fix connection reference double-unref after BR/EDR slave-to-master role switch, which caused an assert during A2DP disconnect.
+
 ## 2026-04-01
 1.[blestack] Add support for setting BLE static random address.
 

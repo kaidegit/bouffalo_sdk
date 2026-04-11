@@ -122,7 +122,12 @@ uint32_t wifi_sys_now_ms(bool isr);
  * @param[in] fmt Format string
  ****************************************************************************************
  */
-void __attribute__((used)) __attribute__((__format__(__printf__, 2, 3)))
-wifi_syslog(int priority, const char *fmt, ...);
+#ifdef CONFIG_LOG_DISABLE
+    #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+    #define wifi_syslog(...) ((void)0)
+#else
+    void __attribute__((used)) __attribute__((__format__(__printf__, 2, 3)))
+    wifi_syslog(int priority, const char *fmt, ...);
+#endif
 
 #endif // RTOS_H_

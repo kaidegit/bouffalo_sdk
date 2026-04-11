@@ -89,8 +89,6 @@ static int bl_get_jpeg_frame(uint8_t **c_ptr1, uint32_t *c_len1, uint8_t **c_ptr
 
         frame_valid[count] = jpeg_frame_info[count].elem_base.frame_id;
 
-        // bflb_l1c_dcache_invalidate_range(jpeg_frame_info[count].elem_base.frame_addr, jpeg_frame_info[count].data_size);
-
         *c_ptr1 = (uint8_t *)(jpeg_frame_info[count].elem_base.frame_addr);
         *c_len1 = (uint32_t)(jpeg_frame_info[count].data_size);
         *c_ptr2 = NULL;

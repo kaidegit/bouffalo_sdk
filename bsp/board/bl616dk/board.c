@@ -380,7 +380,9 @@ void ram_heap_init(void)
 
     /* psram heap init */
     heap_len = ((size_t)&__psram_limit - (size_t)&__psram_heap_base);
+#ifndef CONFIG_PSRAM_SKIP_REGISTER_HEAP
     mm_register_heap(MM_HEAP_PSRAM_0, "PSRAM", MM_ALLOCATOR_TLSF, &__psram_heap_base, heap_len);
+#endif
 
     /* ram info dump */
     printf("dynamic memory init success\r\n"

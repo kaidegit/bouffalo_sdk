@@ -628,18 +628,16 @@ static void kv_test_proc(void *arg)
     int error_num = 0;
     char kv_namespace[PSM_MAX_KEY_LEN / 2];
     char kv_key[PSM_MAX_KEY_LEN / 2];
-    char *kv_value, *kv_value2;
+    char *kv_value = NULL, *kv_value2 = NULL;
     int time;
 
     kv_value = malloc(PSM_MAX_VAL_LEN + 1);
     if (NULL == kv_value)
-        return;
+        goto exit;
 
     kv_value2 = malloc(PSM_MAX_VAL_LEN + 1);
-    if (NULL == kv_value2) {
-        free(kv_value);
-        return;
-    }
+    if (NULL == kv_value2)
+        goto exit;
 
     while (1) {
         arch_os_ms_sleep(CONFIG_KV_TEST_FILE_OPER_PERIOD);
@@ -690,6 +688,11 @@ static void kv_test_proc(void *arg)
             }
         }
     }
+
+exit:
+    free(kv_value);
+    free(kv_value2);
+    arch_os_thread_finish();
 }
 
 static int kv_test_gen_namespace_len(void)
@@ -737,20 +740,21 @@ static void kv_test2_proc(void *arg)
     int key_l = 0;
     char kv_namespace[PSM_MAX_KEY_LEN / 2];
     char kv_key[PSM_MAX_KEY_LEN / 2];
-    char *kv_value, *kv_value2;
+    char *kv_value = NULL, *kv_value2 = NULL;
     int time;
+    char *value_test = NULL;
 
     kv_value = malloc(PSM_MAX_VAL_LEN + 1);
     if (NULL == kv_value)
-        return;
+        goto exit;
 
     kv_value2 = malloc(PSM_MAX_VAL_LEN + 1);
-    if (NULL == kv_value2) {
-        free(kv_value);
-        return;
-    }
+    if (NULL == kv_value2)
+        goto exit;
 
-    char *value_test = malloc(PSM_MAX_VAL_LEN + 1);
+    value_test = malloc(PSM_MAX_VAL_LEN + 1);
+    if (NULL == value_test)
+        goto exit;
 
     while (1) {
         arch_os_ms_sleep(CONFIG_KV_TEST_FILE_OPER_PERIOD);
@@ -810,6 +814,12 @@ static void kv_test2_proc(void *arg)
 #endif
         }
     }
+
+exit:
+    free(value_test);
+    free(kv_value2);
+    free(kv_value);
+    arch_os_thread_finish();
 }
 
 static void kv_test3_proc(void *arg)
@@ -820,20 +830,21 @@ static void kv_test3_proc(void *arg)
     int index;
     char kv_namespace[PSM_MAX_KEY_LEN / 2];
     char kv_key[PSM_MAX_KEY_LEN / 2];
-    char *kv_value, *kv_value2;
+    char *kv_value = NULL, *kv_value2 = NULL;
     int time;
+    char *value_test = NULL;
 
     kv_value = malloc(PSM_MAX_VAL_LEN + 1);
     if (NULL == kv_value)
-        return;
+        goto exit;
 
     kv_value2 = malloc(PSM_MAX_VAL_LEN + 1);
-    if (NULL == kv_value2) {
-        free(kv_value);
-        return;
-    }
+    if (NULL == kv_value2)
+        goto exit;
 
-    char *value_test = malloc(PSM_MAX_VAL_LEN + 1);
+    value_test = malloc(PSM_MAX_VAL_LEN + 1);
+    if (NULL == value_test)
+        goto exit;
 
     while (1) {
         arch_os_ms_sleep(1);
@@ -904,6 +915,12 @@ static void kv_test3_proc(void *arg)
             kv_test_del_key();
         }
     }
+
+exit:
+    free(value_test);
+    free(kv_value2);
+    free(kv_value);
+    arch_os_thread_finish();
 }
 
 static void kv_test4_proc(void *arg)
@@ -914,18 +931,16 @@ static void kv_test4_proc(void *arg)
     int error_num = 0;
     char kv_namespace[PSM_MAX_KEY_LEN / 2];
     char kv_key[PSM_MAX_KEY_LEN / 2];
-    char *kv_value, *kv_value2;
+    char *kv_value = NULL, *kv_value2 = NULL;
     int time;
 
     kv_value = malloc(PSM_MAX_VAL_LEN + 1);
     if (NULL == kv_value)
-        return;
+        goto exit;
 
     kv_value2 = malloc(PSM_MAX_VAL_LEN + 1);
-    if (NULL == kv_value2) {
-        free(kv_value);
-        return;
-    }
+    if (NULL == kv_value2)
+        goto exit;
 
     while (1) {
         arch_os_ms_sleep(600);
@@ -967,6 +982,11 @@ static void kv_test4_proc(void *arg)
             }
         }
     }
+
+exit:
+    free(kv_value2);
+    free(kv_value);
+    arch_os_thread_finish();
 }
 
 void kv_test5_proc(void *arg)
@@ -977,23 +997,25 @@ void kv_test5_proc(void *arg)
     int error_num = 0;
     char kv_namespace[PSM_MAX_KEY_LEN / 2];
     char kv_key[PSM_MAX_KEY_LEN / 2];
-    char *kv_value, *kv_value2;
+    char *kv_value = NULL, *kv_value2 = NULL;
     int time;
 
     kv_value = malloc(PSM_MAX_VAL_LEN + 1);
     if (NULL == kv_value)
-        return;
+        goto exit;
 
     kv_value2 = malloc(PSM_MAX_VAL_LEN + 1);
-    if (NULL == kv_value2) {
-        free(kv_value);
-        return;
-    }
+    if (NULL == kv_value2)
+        goto exit;
+
+    LOG_INFO_TAG(KV_LOG_TAG, "=== KV test 5 started: max %d operations ===", KV_TEST_MAX_VALID_NUM);
 
     while (1) {
         arch_os_ms_sleep(CONFIG_KV_TEST_FILE_OPER_PERIOD);
-        if (kv_test_valid_num > KV_TEST_MAX_VALID_NUM)
-            continue;
+        if (kv_test_valid_num >= KV_TEST_MAX_VALID_NUM) {
+            LOG_INFO_TAG(KV_LOG_TAG, "=== KV test completed: %d operations ===", kv_num);
+            break;
+        }
         arch_os_mutex_get(kv_test_store_mutex, ARCH_OS_WAIT_FOREVER);
         kv_test_create_key(kv_namespace, 0, kv_key, 0);
         valuelen = kv_test_create_value(kv_value, 0);
@@ -1032,7 +1054,15 @@ void kv_test5_proc(void *arg)
         }
     }
 
-    LOG_ERROR_TAG(KV_LOG_TAG, "%s end\n", __FUNCTION__);
+    LOG_INFO_TAG(KV_LOG_TAG, "=== KV test 5 finished ===");
+    LOG_INFO_TAG(KV_LOG_TAG, "Total operations: %d", kv_num);
+    LOG_INFO_TAG(KV_LOG_TAG, "Average write time: %d ms", kv_num > 0 ? kv_w_time / kv_num : 0);
+    LOG_INFO_TAG(KV_LOG_TAG, "Max write time: %d ms", kv_w_max_time);
+
+exit:
+    free(kv_value);
+    free(kv_value2);
+    arch_os_thread_finish();
 }
 
 int kv_test(void)

@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <sys/param.h>
@@ -146,6 +145,7 @@ static void iperf_report_task(void *arg)
             actual_transfer = s_iperf_ctrl.tot_len / 1e6;
             printf("[%3d] %2d.0-%2d.0 sec  %.2f MByte  %.2f Mbits/sec\r\n",
                    s_iperf_ctrl.sockfd, 0, time, actual_transfer, average);
+            printf("iperf done\r\n");
             break;
         }
     }

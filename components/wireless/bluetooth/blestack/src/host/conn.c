@@ -271,9 +271,20 @@ void notify_disconnected(struct bt_conn *conn)
 			cb->disconnected(conn, conn->err);
 		}
 	}
-	if(conn->role == BT_HCI_ROLE_MASTER)
-	{
-	    bt_conn_unref(conn);
+	/* Release the sticky ref for locally-initiated master connections.
+	 * For BR/EDR, use the original creation role (not post-RSW role)
+	 * to avoid double-unref or ref leak after role switch.
+	 */
+#if defined(BFLB_BREDR_PATCH_FIX_BREDR_CONN_REF_AFTER_ROLE_SWITCH) && defined(CONFIG_BT_BREDR)
+	if (conn->type == BT_CONN_TYPE_BR) {
+		if (atomic_test_bit(conn->flags, BT_CONN_BR_INITIAL_MASTER)) {
+			bt_conn_unref(conn);
+		}
+		return;
+	}
+#endif
+	if (conn->role == BT_HCI_ROLE_MASTER) {
+		bt_conn_unref(conn);
 	}
 }
 
@@ -740,6 +751,10 @@ struct bt_conn *bt_conn_create_br(const bt_addr_t *peer,
 
 	bt_conn_set_state(conn, BT_CONN_CONNECT);
 	conn->role = BT_CONN_ROLE_MASTER;
+#if defined(BFLB_BREDR_PATCH_FIX_BREDR_CONN_REF_AFTER_ROLE_SWITCH)
+	/* Mark original master role, survives role switch */
+	atomic_set_bit(conn->flags, BT_CONN_BR_INITIAL_MASTER);
+#endif
 
 	//bt_conn_unref(conn);
 	return conn;

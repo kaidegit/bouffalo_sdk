@@ -1,6 +1,6 @@
-# Peripheral
+# Central
 
-This sample description ble peripheral function with READ, WRITE/WRITE NO RESPONSE, INDICATE and NOTIFY properties. Can be linked and communicated by ble app.
+This sample demonstrates the BLE central (client) role. It scans for a target peripheral device, establishes a connection, discovers services and characteristics, and continuously writes test data.
 
 ## Support CHIP
 
@@ -22,7 +22,7 @@ make CHIP=bl616 BOARD=bl616dk
 make flash CHIP=chip_name COMX=xxx # xxx is your com name
 ```
 
-## Peripheral Configuration Details
+## Target Peripheral Configuration
 
 This central example is designed to connect to a peripheral device with the following configuration:
 

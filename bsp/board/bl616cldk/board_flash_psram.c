@@ -4,6 +4,7 @@
 #else
 
 #include "bflb_flash.h"
+#include "bflb_mtimer.h"
 #include "bflb_xip_sflash.h"
 #include "bflb_sf_ctrl.h"
 #include "bflb_efuse.h"
@@ -12,6 +13,9 @@
 #include "bl616cl_glb.h"
 #include "bl616cl_psram.h"
 #include "bl616cl_tzc_sec.h"
+
+
+#define PSRAM_READ_ID_TIMEOUT_US 100
 
 #ifndef CONFIG_BOARD_FLASH_LOW_SPEED
 typedef struct {
@@ -241,7 +245,7 @@ static int ATTR_TCM_SECTION flash_check_bootheader(spi_flash_cfg_type *pflash_cf
     uint32_t crc32 = 0;
     uint8_t *pcrc32 = read_data + 252;
 
-    stat = bflb_sflash_read(pflash_cfg, SF_CTRL_QIO_MODE, 0, 0x00000000, read_data, sizeof(read_data));
+    stat = bflb_sflash_read(pflash_cfg, pflash_cfg->io_mode&0xf, 0, 0x00000000, read_data, sizeof(read_data));
     if (0 != stat) {
         return -1;
     }
@@ -505,6 +509,26 @@ uint8_t psram_rw_check(void)
     return SUCCESS;
 }
 
+static uint16_t psram_winbond_read_id_with_timeout(uint32_t timeout_us)
+{
+    uint16_t reg_read = 0;
+    uint64_t start_time = bflb_mtimer_get_time_us();
+
+    while (1) {
+        PSram_Ctrl_Winbond_Read_Reg(PSRAM0_ID, PSRAM_WINBOND_REG_ID0, &reg_read);
+        if ((reg_read == PSRAM_ID_WINBOND_4MB) || (reg_read == PSRAM_ID_WINBOND_8MB) ||
+            (reg_read == PSRAM_ID_WINBOND_16MB) || (reg_read == PSRAM_ID_WINBOND_32MB)) {
+            break;
+        }
+
+        if ((bflb_mtimer_get_time_us() - start_time) >= timeout_us) {
+            break;
+        }
+    }
+
+    return reg_read;
+}
+
 static uint16_t psram_winbond_init_dqs(int8_t burst_len, uint8_t is_fix_latency, uint8_t latency, uint16_t dqs_delay)
 {
     uint16_t reg_read = 0;
@@ -535,7 +559,7 @@ static uint16_t psram_winbond_init_dqs(int8_t burst_len, uint8_t is_fix_latency,
     // PSram_Ctrl_Winbond_Reset(PSRAM0_ID);
     PSram_Ctrl_Winbond_Write_Reg(PSRAM0_ID, PSRAM_WINBOND_REG_CR0, &default_winbond_cfg);
 
-    PSram_Ctrl_Winbond_Read_Reg(PSRAM0_ID, PSRAM_WINBOND_REG_ID0, &reg_read);
+    reg_read = psram_winbond_read_id_with_timeout(PSRAM_READ_ID_TIMEOUT_US);
 
     if (PSRAM_ID_WINBOND_4MB == reg_read) {
         default_psram_ctrl_cfg.size = PSRAM_SIZE_4MB;

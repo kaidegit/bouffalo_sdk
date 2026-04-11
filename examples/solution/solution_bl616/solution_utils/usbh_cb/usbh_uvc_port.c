@@ -151,6 +151,8 @@ ATTR_FAST_RAM_SECTION int usbh_uvc_frame_send(struct usbh_videoframe *frame)
     queue_frame.y_start = 0;
     queue_frame.x_end = CONFIG_SOLUTION_VIDEO_DEFAULT_WIDTH - 1;
     queue_frame.y_end = CONFIG_SOLUTION_VIDEO_DEFAULT_HIGHT - 1;
+    /* cache */
+    // bflb_l1c_dcache_invalidate_range(queue_frame.elem_base.frame_addr, frame->frame_size);
 #endif
 
     /* picture push */

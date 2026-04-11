@@ -175,6 +175,14 @@ static void l2cap_br_chan_destroy(struct bt_l2cap_chan *chan)
 	k_delayed_work_cancel(&chan->rtx_work);
 
 	atomic_clear(BR_CHAN(chan)->flags);
+
+#if defined(BFLB_BREDR_PATCH_CLEAR_L2CAP_BR_STALE_CID)
+	/* Clear CIDs so reused channel structs get fresh allocation
+	 * on next connection instead of keeping stale values.
+	 */
+	BR_CHAN(chan)->rx.cid = 0U;
+	BR_CHAN(chan)->tx.cid = 0U;
+#endif
 }
 
 static void l2cap_br_rtx_timeout(struct k_work *work)

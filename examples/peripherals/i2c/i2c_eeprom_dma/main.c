@@ -67,15 +67,31 @@ int main(void)
 
     bflb_dma_channel_irq_attach(dma0_ch0, dma0_ch0_isr, NULL);
 
+#if defined(BL616CL)
+    struct bflb_dma_channel_lli_transfer_s tx_transfers[2];
+    tx_transfers[0].src_addr = (uint32_t)subaddr;
+    tx_transfers[0].dst_addr = (uint32_t)DMA_ADDR_I2C0_TDR;
+    tx_transfers[0].nbytes = 4;
+
+    tx_transfers[1].src_addr = (uint32_t)send_buffer;
+    tx_transfers[1].dst_addr = (uint32_t)DMA_ADDR_I2C0_TDR;
+    tx_transfers[1].nbytes = 32;
+    bflb_dma_channel_lli_reload(dma0_ch0, tx_llipool, 20, tx_transfers, 2);
+#else
     struct bflb_dma_channel_lli_transfer_s tx_transfers[1];
     tx_transfers[0].src_addr = (uint32_t)send_buffer;
     tx_transfers[0].dst_addr = (uint32_t)DMA_ADDR_I2C0_TDR;
     tx_transfers[0].nbytes = 32;
     bflb_dma_channel_lli_reload(dma0_ch0, tx_llipool, 20, tx_transfers, 1);
+#endif
 
     msgs[0].addr = 0x50;
     msgs[0].flags = I2C_M_NOSTOP;
+#if defined(BL616CL)
+    msgs[0].buffer = NULL;
+#else
     msgs[0].buffer = subaddr;
+#endif
     msgs[0].length = 2;
 
     msgs[1].addr = 0x50;
@@ -119,6 +135,9 @@ int main(void)
     rx_transfers[0].dst_addr = (uint32_t)receive_buffer;
     rx_transfers[0].nbytes = 32;
 
+#if defined(BL616CL)
+    bflb_dma_channel_lli_reload(dma0_ch0, tx_llipool, 20, tx_transfers, 1);
+#endif
     bflb_dma_channel_lli_reload(dma0_ch1, rx_llipool, 20, rx_transfers, 1);
 
     msgs[1].addr = 0x50;
@@ -127,6 +146,9 @@ int main(void)
     msgs[1].length = 32;
     bflb_i2c_transfer(i2c0, msgs, 2);
 
+#if defined(BL616CL)
+    bflb_dma_channel_start(dma0_ch0);
+#endif
     bflb_dma_channel_start(dma0_ch1);
 
     while (dma_tc_flag1 == 0) {

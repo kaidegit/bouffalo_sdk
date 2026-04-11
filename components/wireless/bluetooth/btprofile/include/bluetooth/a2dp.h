@@ -89,6 +89,10 @@ struct bt_a2dp_config {
 	uint8_t sub_band;
 	/** Block Length */
 	uint8_t block_len;
+	/** Minimum bitpool negotiated by peer */
+	uint8_t min_bitpool;
+	/** Maximum bitpool negotiated by peer */
+	uint8_t max_bitpool;
 };
 
 /** @brief Stream End Point Media Type */

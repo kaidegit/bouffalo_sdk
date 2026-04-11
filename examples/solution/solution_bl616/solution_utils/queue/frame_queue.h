@@ -7,9 +7,12 @@
 /******************* yuyv frame cfg **********************/
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_YUYV)
 /* frame pool cfg */
-#define YUYV_FRAME_SHARE_EN          (0)
-#define YUYV_FRAME_SIZE              (CONFIG_SOLUTION_VIDEO_DEFAULT_WIDTH * CONFIG_SOLUTION_VIDEO_DEFAULT_HIGHT * 2)
-#define YUYV_FRAME_NUM               (2)
+#ifndef CONFIG_YUYV_FRAME_SIZE
+#define CONFIG_YUYV_FRAME_SIZE       (CONFIG_SOLUTION_VIDEO_DEFAULT_WIDTH * CONFIG_SOLUTION_VIDEO_DEFAULT_HIGHT * 2)
+#endif
+#ifndef CONFIG_YUYV_FRAME_NUM
+#define CONFIG_YUYV_FRAME_NUM        (2)
+#endif
 
 /* jpeg out_queue cfg */
 #define YUYV_FRAME_STREAM_JPEG_ID    (0)
@@ -38,8 +41,12 @@ int yuyv_frame_ctrl_init(void);
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_MJPEG)
 
 /* frame pool cfg */
-#define MJPEG_FRAME_SIZE                  (200 * 1024)
-#define MJPEG_FRAME_NUM                   (6)
+#ifndef CONFIG_MJPEG_FRAME_SIZE
+#define CONFIG_MJPEG_FRAME_SIZE           (100 * 1024)
+#endif
+#ifndef CONFIG_MJPEG_FRAME_NUM
+#define CONFIG_MJPEG_FRAME_NUM            (6)
+#endif
 
 /* sd avi out_queue cfg */
 #define MJPEG_FRAME_STREAM_SD_AVI_ID      (0)
@@ -67,8 +74,12 @@ int jpeg_frame_ctrl_init(void);
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_AUDIO_IN)
 
 /* frame pool cfg */
-#define AUDIO_IN_FRAME_SIZE                  (1024)
-#define AUDIO_IN_FRAME_NUM                   (20)
+#ifndef CONFIG_AUDIO_IN_FRAME_SIZE
+#define CONFIG_AUDIO_IN_FRAME_SIZE           (1024)
+#endif
+#ifndef CONFIG_AUDIO_IN_FRAME_NUM
+#define CONFIG_AUDIO_IN_FRAME_NUM            (20)
+#endif
 
 /* audio lookback out_queue cfg */
 #define AUDIO_IN_FRAME_STREAM_LOOKBACK_ID    (0)
@@ -95,8 +106,12 @@ int auadc_in_frame_ctrl_init(void);
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_AUDIO_OUT)
 
 /* frame pool cfg */
-#define AUDIO_OUT_FRAME_SIZE                (1024)
-#define AUDIO_OUT_FRAME_NUM                 (20)
+#ifndef CONFIG_AUDIO_OUT_FRAME_SIZE
+#define CONFIG_AUDIO_OUT_FRAME_SIZE         (1024)
+#endif
+#ifndef CONFIG_AUDIO_OUT_FRAME_NUM
+#define CONFIG_AUDIO_OUT_FRAME_NUM          (20)
+#endif
 
 /* audio audac out_queue cfg */
 #define AUDIO_OUT_FRAME_STREAM_AUDAC_ID     (0)

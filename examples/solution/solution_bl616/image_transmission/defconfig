@@ -1,103 +1,65 @@
+CONFIG_GCC_OPTIMISE_LEVEL =-O2
 
 ifneq (,$(filter $(CHIP),bl616 bl616cl))
     CONFIG_WL80211 =y
-endif
-
-# The default configuration of the wireless network
--include $(BL_SDK_BASE)/examples/wifi/defconfig
-
-ifeq ($(CONFIG_WL80211),y)
     CONFIG_WL80211_WRAM_MEM_SIZE_LIMIT = 0x4000 # 16KB
 endif
 
-CONFIG_PSRAM =y
+CONFIG_BFLB_LOG      =n
+CONFIG_FREERTOS      =y
+CONFIG_POSIX         =y
+CONFIG_TLSF          =y
+#CONFIG_SHELL        =y
+CONFIG_LOG_DISABLE   =y
+CONFIG_LWIP          =y
+CONFIG_RF            =y
+CONFIG_DHCPD         =y
+CONFIG_MBEDTLS       =y
 
-CONFIG_IPERF =y
-# CONFIG_WIFI_IPERF =y
-
-# CherryUSB
-CONFIG_CHERRYUSB =y
-CONFIG_CHERRYUSB_OSAL =freertos
-# CONFIG_CHERRYUSB_DEVICE =y
-CONFIG_CHERRYUSB_HOST =y
-CONFIG_CHERRYUSB_HOST_VIDEO =y
-CONFIG_CHERRYUSB_HOST_AUDIO =y
-# The log of macsw affects the real-time performance of usb iso.
-ifeq ($(CONFIG_CHERRYUSB_HOST),y)
-    CONFIG_NO_FW_BL_LOG_PRINT =y
+ifeq ($(CHIP),bl602)
+    CONFIG_WIFI4=y
+else
+    CONFIG_WIFI6=y
+    CONFIG_MACSW_SELECT = default
+    ifeq ($(CONFIG_WL80211),y)
+        CONFIG_BL_WPA_SUPPLICANT =y
+    else
+        CONFIG_FHOST=y
+    endif
 endif
 
-CONFIG_BSP_LCD =y
-CONFIG_BSP_IMAGE_SENSOR =y
+CONFIG_VSNPRINTF_FLOAT      =y
+CONFIG_VSNPRINTF_FLOAT_EX   =y
+CONFIG_VSNPRINTF_LONG_LONG  =y
 
-CONFIG_FATFS                =y
-CONFIG_FATFS_SDH_SDCARD     =y
-# sdh std driver
-# CONFIG_BSP_SDH_SDCARD       =y
-# CONFIG_BSP_SDH_SDCARD_INT   =y
-# sdh lhal driver
-CONFIG_BSP_SDH_SD                   =y
-CONFIG_BSP_SDH_OSAL_POLLING_MODE    =n
-# CONFIG_BSP_SDH_LOG_LEVEL          =5
+CONFIG_PSRAM =y
 
 ################### solution_utils config ###################
-CONFIG_SOLUTION_BUILD_FROM_LIB_MODE     =y # lib mode, for public use
-
 ################### queue ###################
 CONFIG_SOLUTION_QUEUE_YUYV          =y
 CONFIG_SOLUTION_QUEUE_MJPEG         =y
 CONFIG_SOLUTION_QUEUE_AUDIO_IN      =y
 CONFIG_SOLUTION_QUEUE_AUDIO_OUT     =y
 
-################### audio ##################
-# internal codec
-CONFIG_SOLUTION_FUNC_AUDIO_AUADC    =n
-CONFIG_SOLUTION_FUNC_AUDIO_AUDAC    =n
-## external i2s codec
-CONFIG_SOLUTION_FUNC_AUDIO_I2S_IN   =n
-CONFIG_SOLUTION_FUNC_AUDIO_I2S_OUT  =n
-## external usb codec
-CONFIG_SOLUTION_FUNC_UAC_IN         =n
-CONFIG_SOLUTION_FUNC_UAC_OUT        =n
-## loopback mode
-CONFIG_SOLUTION_FUNC_AUDIO_LOOPBACK =n
-## es8388 codec init
-CONFIG_SOLUTION_FUNC_AUDIO_ES8388   =n
-
 ################### video ##################
 ## video default size
-CONFIG_SOLUTION_VIDEO_DEFAULT_WIDTH  =640
-CONFIG_SOLUTION_VIDEO_DEFAULT_HIGHT  =480
+CONFIG_SOLUTION_VIDEO_DEFAULT_WIDTH  =240
+CONFIG_SOLUTION_VIDEO_DEFAULT_HIGHT  =320
 ## dbi display (yuyv >> dbi_displa)
 CONFIG_SOLUTION_FUNC_DBI_DISP       =y
 ## jpeg compression (yuyv >> jpeg)
 CONFIG_SOLUTION_FUNC_MJPEG          =y
 ## dvp sensor (dvp >> yuyv)
 CONFIG_SOLUTION_FUNC_DVP            =y
-## jpeg from dvp (dvp >> yuyv >> jpeg)
-CONFIG_SOLUTION_FUNC_DVP_JPEG       =n
-## uvc yuyv mode (usb >> yuyv)
-CONFIG_SOLUTION_FUNC_UVC_YUYV       =n
-## uvc jpeg mode (usb >> jpeg)
-CONFIG_SOLUTION_FUNC_UVC_JPEG       =n
-
-################### other ##################
-## save to .avi (jpeg >> sd_card .avi)
-CONFIG_SOLUTION_FUNC_SDCARD_AVI_VIDS     =n
-## save to .avi (audio_pcm >> sd_card .avi)
-CONFIG_SOLUTION_FUNC_SDCARD_AVI_AUDS     =n
 
 ## image_transmission (jpeg)
 CONFIG_SOLUTION_FUNC_HIBOOSTER_NEW  =y
 CONFIG_HB_SEND_TEST                 =n
 CONFIG_HB_RECV_TEST                 =y
 
-CONFIG_SOLUTION_FUNC_HIBOOSTER      =n
-CONFIG_HIBOOSTER_SIMU_DATA_TEST     =n
-
-CONFIG_SOLUTION_FUNC_RTSP           =n
-CONFIG_RTSP                         =n
-################### solution_utils config end ###################
+## The default configuration of the solution_utils
+-include $(BL_SDK_BASE)/examples/solution/solution_bl616/solution_utils/defconfig
+# ################### solution_utils config end ###################
 
 # Config
 ## mbedtls
@@ -107,6 +69,9 @@ CONFIG_MBEDTLS_ECC_USE_HW =y
 CONFIG_MBEDTLS_SHA1_USE_HW =y
 CONFIG_MBEDTLS_SHA256_USE_HW =y
 CONFIG_MBEDTLS_SHA512_USE_HW =y
+
+# 84KB WRAM for BL616/BL616CL, which is enough for this project.
+CONFIG_WRAM_LENGTH = 0x15000
 
 ifeq ($(CHIP),bl618dg)
     CONFIG_ROMAPI             =n

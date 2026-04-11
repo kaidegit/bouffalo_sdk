@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include "coredump.h"
 
 #define COREDUMP_VERSION "1.0.0"
 

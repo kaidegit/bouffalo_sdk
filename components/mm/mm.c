@@ -80,10 +80,8 @@ int mem_manager_init(void)
     mm_register_allocator(MM_ALLOCATOR_TLSF, &g_tlsf_allocator);
 #endif
 
-#ifdef CONFIG_MM_ENABLE_FREERTOS_HEAP5
-    /* Future addition of FreeRTOS heap5 allocator registration */
-    // extern const mm_allocator_t freertos_heap5_allocator;
-    // mm_register_allocator(MM_ALLOCATOR_HEAP5, &freertos_heap5_allocator);
+#ifdef CONFIG_MM_HEAP5_EN
+    mm_register_allocator(MM_ALLOCATOR_HEAP5, &g_heap5_allocator);
 #endif
 
     /* Set manager status */

@@ -13,7 +13,9 @@
  */
 
 /* 4M */
+#ifndef CONFIG_FLASH_XIP_ADDRESS
 #define CONFIG_FLASH_XIP_ADDRESS 0x80000000
+#endif
 #ifndef CONFIG_FLASH_XIP_LENGTH
 #define CONFIG_FLASH_XIP_LENGTH 4096 * 1024
 #endif
@@ -102,10 +104,10 @@ MEMORY
     ram  (!rx)        : ORIGIN = RAM_ADDRESS,                       LENGTH = RAM_LENGTH
 #else
     fw_header  (rx)   : ORIGIN = RAM_ADDRESS - (256+16),            LENGTH = 256+16
-    rom_header (rx)   : ORIGIN = RAM_ADDRESS,                       LENGTH = 4K
+    rom_header (rx)   : ORIGIN = RAM_ADDRESS,                       LENGTH = 6K
 
-    ram_nocache (!rx) : ORIGIN = (RAM_ADDRESS + 4K) & 0x2FFFFFFF,   LENGTH = RAM_LENGTH - 4K
-    ram  (!rx)        : ORIGIN = RAM_ADDRESS + 4K,                  LENGTH = CONFIG_RAM_LENGTH
+    ram_nocache (!rx) : ORIGIN = (RAM_ADDRESS + 6K) & 0x2FFFFFFF,   LENGTH = RAM_LENGTH - 6K
+    ram  (!rx)        : ORIGIN = RAM_ADDRESS + 6K,                  LENGTH = RAM_LENGTH - 6K 
 #endif
 
 #ifdef CPU_AP
@@ -332,6 +334,17 @@ SECTIONS
 
     SECTION_BSS_PROLOGUE(ram_bss, (NOLOAD),)
     {
+        . = ALIGN(4);
+
+        *(.bss*)
+        *(.sbss*)
+        *(COMMON)
+
+        . = ALIGN(4);
+    } > ram
+
+    SECTION_BSS_PROLOGUE(ram_noinit, (NOLOAD),)
+    {
         . = ALIGN(16);
         . = . + 0x1000;
         __StackTop = .;
@@ -350,16 +363,6 @@ SECTIONS
         __freertos_high_irq_stack_top = .;
 #endif
 
-        *(.bss*)
-        *(.sbss*)
-        *(COMMON)
-
-        . = ALIGN(4);
-    } > ram
-
-    SECTION_BSS_PROLOGUE(ram_noinit, (NOLOAD),)
-    {
-        . = ALIGN(4);
         *(.noinit_data*)
         KEEP(*(.heap*))
         . = ALIGN(4);
@@ -493,6 +496,7 @@ SECTIONS
         *(.text*)
         *(.rodata*)
 
+#ifdef CONFIG_SHELL
         /* section information for shell */
         . = ALIGN(4);
         __fsymtab_start = .;
@@ -503,6 +507,7 @@ SECTIONS
         __vsymtab_start = .;
         KEEP(*(VSymTab))
         __vsymtab_end = .;
+#endif
 
         /* section information for usb usbh_class_info */
         . = ALIGN(4);

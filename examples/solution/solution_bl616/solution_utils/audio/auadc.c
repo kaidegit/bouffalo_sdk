@@ -47,9 +47,9 @@ static EventGroupHandle_t audio_record_event_group;
 static struct bflb_device_s *auadc_hd;
 static struct bflb_device_s *auadc_dma_hd;
 
-static ATTR_NOCACHE_RAM_SECTION __ALIGNED(32) struct bflb_dma_channel_lli_pool_s dma_lli_pool[AUDIO_IN_FRAME_NUM];
+static ATTR_NOCACHE_RAM_SECTION __ALIGNED(32) struct bflb_dma_channel_lli_pool_s dma_lli_pool[CONFIG_AUDIO_IN_FRAME_NUM];
 
-static audio_in_frame_t auadc_using_frame[AUDIO_IN_FRAME_NUM];
+static audio_in_frame_t auadc_using_frame[CONFIG_AUDIO_IN_FRAME_NUM];
 static volatile uint16_t auadc_using_num;
 
 /* audio_dma_isr */
@@ -93,7 +93,7 @@ ATTR_TCM_SECTION static void auadc_dma_isr(void *arg)
     }
 
     /* get new buffer */
-    for (frame_index = 0; frame_index < (AUDIO_IN_FRAME_NUM / 3); frame_index++) {
+    for (frame_index = 0; frame_index < (CONFIG_AUDIO_IN_FRAME_NUM / 3); frame_index++) {
         ret = frame_queue_alloc_lock(g_audio_in_frame_ctrl, (frame_elem_t *)&auadc_using_frame[frame_index], 0);
         if (ret < 0) {
             break;
@@ -118,8 +118,8 @@ ATTR_TCM_SECTION static void auadc_dma_isr(void *arg)
         dma_lli_pool[lli_index].dst_addr = (uint32_t)(auadc_using_frame[lli_index].elem_base.frame_addr);
 
 #if (AUADC_DMA_AUTO_DELE_EN)
-        if (queue_waiting_num < AUDIO_IN_FRAME_NUM / 4) {
-            dma_lli_pool[lli_index].control.bits.TransferSize = AUADC_FRAME_SIZE / 2 + (AUDIO_IN_FRAME_NUM / 4 - queue_waiting_num);
+        if (queue_waiting_num < CONFIG_AUDIO_IN_FRAME_NUM / 4) {
+            dma_lli_pool[lli_index].control.bits.TransferSize = AUADC_FRAME_SIZE / 2 + (CONFIG_AUDIO_IN_FRAME_NUM / 4 - queue_waiting_num);
         } else {
             dma_lli_pool[lli_index].control.bits.TransferSize = AUADC_FRAME_SIZE / 2;
         }
@@ -222,7 +222,7 @@ static void audio_record_resume_task(void *pvParameters)
         AUADC_DBG("audio record resume\r\n");
 
         /* get more buffs */
-        for (frame_index = 1; frame_index < (AUDIO_IN_FRAME_NUM / 3); frame_index++) {
+        for (frame_index = 1; frame_index < (CONFIG_AUDIO_IN_FRAME_NUM / 3); frame_index++) {
             ret = frame_queue_alloc_lock(g_audio_in_frame_ctrl, (frame_elem_t *)&auadc_using_frame[frame_index], 0);
             if (ret < 0) {
                 break;
@@ -240,8 +240,8 @@ static void audio_record_resume_task(void *pvParameters)
             dma_lli_pool[lli_index].dst_addr = (uint32_t)(auadc_using_frame[lli_index].elem_base.frame_addr);
 
 #if (AUADC_DMA_AUTO_DELE_EN)
-            if (queue_waiting_num < AUDIO_IN_FRAME_NUM / 4) {
-                dma_lli_pool[lli_index].control.bits.TransferSize = AUADC_FRAME_SIZE / 2 + (AUDIO_IN_FRAME_NUM / 4 - queue_waiting_num);
+            if (queue_waiting_num < CONFIG_AUDIO_IN_FRAME_NUM / 4) {
+                dma_lli_pool[lli_index].control.bits.TransferSize = AUADC_FRAME_SIZE / 2 + (CONFIG_AUDIO_IN_FRAME_NUM / 4 - queue_waiting_num);
             } else {
                 dma_lli_pool[lli_index].control.bits.TransferSize = AUADC_FRAME_SIZE / 2;
             }
@@ -273,7 +273,7 @@ int audio_record_rate_convert_task_init(void)
     AUADC_INFO("audio record rate_convert init\r\n");
 
     /* audio_record_rate_convert queue */
-    audio_record_rate_convert_queue = xQueueCreate(AUDIO_IN_FRAME_NUM, sizeof(audio_in_frame_t));
+    audio_record_rate_convert_queue = xQueueCreate(CONFIG_AUDIO_IN_FRAME_NUM, sizeof(audio_in_frame_t));
 
     /* audio_record_rate_convert task */
     xTaskCreate(audio_record_rate_convert_task, (char *)"record_rate_convert_task", 256, NULL, AUADC_TASK_PRIORITY_MAIN - 1, &audio_record_rate_convert_task_hd);
@@ -347,7 +347,7 @@ static void auadc_dma_init(void)
     bflb_dma_channel_init(auadc_dma_hd, &auadc_dma_cfg);
     bflb_dma_channel_irq_attach(auadc_dma_hd, auadc_dma_isr, NULL);
 
-    for (uint8_t i = 0; i < AUDIO_IN_FRAME_NUM; i++) {
+    for (uint8_t i = 0; i < CONFIG_AUDIO_IN_FRAME_NUM; i++) {
         dma_lli_pool[i].control.WORD = bflb_dma_feature_control(auadc_dma_hd, DMA_CMD_GET_LLI_CONTROL, 0);
     }
 }

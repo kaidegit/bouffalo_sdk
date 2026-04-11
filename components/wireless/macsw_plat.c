@@ -75,9 +75,10 @@ uint32_t wifi_sys_now_ms(bool isr)
 /**
  * WiFi syslog implementation
  */
-
+#undef wifi_syslog
 void wifi_syslog(int priority, const char *fmt, ...)
 {
+
     static const struct {
         const char *level;
         const char *color_start;
@@ -106,14 +107,12 @@ void wifi_syslog(int priority, const char *fmt, ...)
     if (priority == 4) {
         vprintf(fmt, args);
         va_end(args);
-        return;
+    } else if (priority == 0) {
+        printf("%s[%s][" DBG_TAG "] ", color_start, level_str);
+        vprintf(fmt, args);
+        printf("%s", color_end);
+        va_end(args);
     }
-
-    printf("%s[%s][" DBG_TAG "] ", color_start, level_str);
-    vprintf(fmt, args);
-    printf("%s", color_end);
-
-    va_end(args);
 }
 
 #if WL_BB_TPC

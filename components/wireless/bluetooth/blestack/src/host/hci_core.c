@@ -5215,6 +5215,9 @@ static int br_init(void)
 	struct bt_hci_cp_write_page_scan_type *page_scan_cp;
 	struct bt_hci_cp_write_inquiry_mode *inq_cp;
 	struct bt_hci_write_local_name *name_cp;
+#if defined(BFLB_BREDR_PATCH_ENABLE_BREDR_DEFAULT_ROLE_SWITCH_POLICY)
+	struct bt_hci_cp_write_default_link_policy *lp_cp;
+#endif
 	int err;
 
 	/* Read extended local features */
@@ -5249,6 +5252,21 @@ static int br_init(void)
 	if (err) {
 		return err;
 	}
+
+#if defined(BFLB_BREDR_PATCH_ENABLE_BREDR_DEFAULT_ROLE_SWITCH_POLICY)
+	/* Enable role switch in default link policy so the controller
+	 * accepts incoming role switch requests. */
+	buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_DEFAULT_LINK_POLICY, sizeof(*lp_cp));
+	if (!buf) {
+		return -ENOBUFS;
+	}
+	lp_cp = net_buf_add(buf, sizeof(*lp_cp));
+	lp_cp->link_policy = sys_cpu_to_le16(BT_LINK_POLICY_ENABLE_ROLE_SWITCH);
+	err = bt_hci_cmd_send_sync(BT_HCI_OP_WRITE_DEFAULT_LINK_POLICY, buf, NULL);
+	if (err) {
+		return err;
+	}
+#endif
 
 	/* Write Class of Device */
 	buf = bt_hci_cmd_create(BT_HCI_OP_WRITE_CLASS_OF_DEVICE, sizeof(*cod_cp));

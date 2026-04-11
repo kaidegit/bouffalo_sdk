@@ -51,7 +51,7 @@ int lcd_init(void)
 {
     int res;
 
-#if (defined(LCD_RESET_EN)&&LCD_RESET_EN) || (defined(LCD_BACKLIGHT_EN)&&LCD_BACKLIGHT_EN)
+#if (defined(LCD_RESET_EN) && LCD_RESET_EN) || (defined(LCD_BACKLIGHT_EN) && LCD_BACKLIGHT_EN)
     struct bflb_device_s *gpio;
     /* gpio init */
     gpio = bflb_device_get_by_name("gpio");
@@ -92,6 +92,29 @@ int lcd_init(void)
 
     return res;
 }
+
+#if (defined(LCD_BACKLIGHT_EN) && LCD_BACKLIGHT_EN)
+void lcd_backlight_toggle(bool on)
+{
+    struct bflb_device_s *gpio;
+
+    /* gpio init */
+    gpio = bflb_device_get_by_name("gpio");
+    if (on) {
+#if LCD_BACKLIGHT_ACTIVE_LEVEL
+        bflb_gpio_set(gpio, LCD_BACKLIGHT_PIN);
+#else
+        bflb_gpio_reset(gpio, LCD_BACKLIGHT_PIN);
+#endif
+    } else {
+#if LCD_BACKLIGHT_ACTIVE_LEVEL
+        bflb_gpio_reset(gpio, LCD_BACKLIGHT_PIN);
+#else
+        bflb_gpio_set(gpio, LCD_BACKLIGHT_PIN);
+#endif
+    }
+}
+#endif
 
 static int lcd_async_callback_enable(bool enable)
 {
@@ -428,6 +451,29 @@ int lcd_init(lcd_color_t *screen_buffer)
     return _LCD_FUNC_DEFINE(init, screen_buffer);
 }
 
+#if (defined(LCD_BACKLIGHT_EN) && LCD_BACKLIGHT_EN)
+void lcd_backlight_toggle(bool on)
+{
+    struct bflb_device_s *gpio;
+
+    /* gpio init */
+    gpio = bflb_device_get_by_name("gpio");
+    if (on) {
+#if LCD_BACKLIGHT_ACTIVE_LEVEL
+        bflb_gpio_set(gpio, LCD_BACKLIGHT_PIN);
+#else
+        bflb_gpio_reset(gpio, LCD_BACKLIGHT_PIN);
+#endif
+    } else {
+#if LCD_BACKLIGHT_ACTIVE_LEVEL
+        bflb_gpio_reset(gpio, LCD_BACKLIGHT_PIN);
+#else
+        bflb_gpio_set(gpio, LCD_BACKLIGHT_PIN);
+#endif
+    }
+}
+#endif
+
 /**
  * @brief Switch the screen, If it is in single-screen mode, there is no effect
  *
@@ -680,26 +726,4 @@ int lcd_draw_str_ascii16(lcd_color_t *screen_buffer, uint16_t x, uint16_t y, lcd
 }
 #endif
 
-#if (defined(LCD_BACKLIGHT_EN) && LCD_BACKLIGHT_EN)
-void lcd_backlight_toggle(bool on)
-{
-    struct bflb_device_s *gpio;
-
-    /* gpio init */
-    gpio = bflb_device_get_by_name("gpio");
-    if (on) {
-#if LCD_BACKLIGHT_ACTIVE_LEVEL
-        bflb_gpio_set(gpio, LCD_BACKLIGHT_PIN);
-#else
-        bflb_gpio_reset(gpio, LCD_BACKLIGHT_PIN);
-#endif
-    } else {
-#if LCD_BACKLIGHT_ACTIVE_LEVEL
-        bflb_gpio_reset(gpio, LCD_BACKLIGHT_PIN);
-#else
-        bflb_gpio_set(gpio, LCD_BACKLIGHT_PIN);
-#endif
-    }
-}
-#endif
 #endif

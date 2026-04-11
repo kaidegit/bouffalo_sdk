@@ -136,10 +136,6 @@ static void peripheral_clock_init(void)
 
 static void peripheral_clock_init_lp(void)
 {
-    PERIPHERAL_CLOCK_UART0_ENABLE();
-
-    GLB_Set_UART_CLK(ENABLE, HBN_UART_CLK_XCLK, 0);
-
 
 }
 #endif
@@ -318,8 +314,13 @@ void ram_heap_init(void)
 
     /* ocram heap init */
     heap_len = ((size_t)&__HeapLimit - (size_t)&__HeapBase);
+#ifdef CONFIG_MEM_HEAP5_EN
+    mm_register_heap(MM_HEAP_OCRAM_0, "OCRAM", MM_ALLOCATOR_HEAP5, &__HeapBase, heap_len);
+    mm_register_heap(MM_HEAP_WRAM_0, "WRAM", MM_ALLOCATOR_HEAP5, &_heap_wifi_start, (uintptr_t)&_heap_wifi_size);
+#else
     mm_register_heap(MM_HEAP_OCRAM_0, "OCRAM", MM_ALLOCATOR_TLSF, &__HeapBase, heap_len);
     mm_register_heap(MM_HEAP_WRAM_0, "WRAM", MM_ALLOCATOR_TLSF, &_heap_wifi_start, (uintptr_t)&_heap_wifi_size);
+#endif
 
 #ifdef CONFIG_PSRAM
     /* psram init */
@@ -330,7 +331,9 @@ void ram_heap_init(void)
 
     /* psram heap init */
     heap_len = ((size_t)&__psram_limit - (size_t)&__psram_heap_base);
+#ifndef CONFIG_PSRAM_SKIP_REGISTER_HEAP
     mm_register_heap(MM_HEAP_PSRAM_0, "PSRAM", MM_ALLOCATOR_TLSF, &__psram_heap_base, heap_len);
+#endif
 
     /* ram info dump */
     printf("dynamic memory init success\r\n"
@@ -634,15 +637,17 @@ void cmd_io_test(char *buf, int len, int argc, char **argv)
 
     /* wake up unmask */
     lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 0); /* gpio 0 */
-    // lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 10); /* gpio 10 */
-    lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 18); /* gpio 18 */
+    lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 6); /* gpio 6 */
     // lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 19); /* gpio 19 */
-    // lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 20); /* gpio 20 */
+    lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 23); /* gpio 23 */
 
-    lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 31); /* gpio 31 */
+    // lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 31); /* gpio 31 */
     // lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 32); /* gpio 32 */
     // lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 33);     /* gpio 33 */
     // lp_wake_io_cfg.io_wakeup_unmask |= ((uint64_t)1 << 34);     /* gpio 34 */
+
+    lp_wake_io_cfg.io_pu |= ((uint64_t)1 << 0); /* gpio 0 */
+    lp_wake_io_cfg.io_pu |= ((uint64_t)1 << 6); /* gpio 6 */
 
     lp_wake_io_cfg.io_ie = lp_wake_io_cfg.io_wakeup_unmask;
 
@@ -650,6 +655,7 @@ void cmd_io_test(char *buf, int len, int argc, char **argv)
 
     /* register io wakeup callback */
     bl_lp_wakeup_io_int_register(test_wakeup_io_callback);
+
 }
 
 SHELL_CMD_EXPORT_ALIAS(cmd_io_test, io_test, cmd io_test);

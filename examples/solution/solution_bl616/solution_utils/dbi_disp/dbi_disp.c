@@ -60,7 +60,7 @@ static EventGroupHandle_t disp_event_group = NULL;
 
 #if (LCD_TE_ENABLE)
 
-#if (YUYV_FRAME_SHARE_EN || YUYV_FRAME_NUM < 2)
+#if (CONFIG_SOLUTION_QUEUE_YUYV_SHARE_EN || CONFIG_YUYV_FRAME_NUM < 2)
 #error TE cannot use a single buff
 #endif
 
@@ -502,9 +502,9 @@ ATTR_TCM_SECTION void yuyv422_to_yuv444_dbi_display_fast(uint16_t x1, uint16_t y
     width = (x2 - x1 + 1);
     height = (y2 - y1 + 1);
 
-    bflb_dbi_feature_control(dbi_hd, DBI_CMD_INPUT_PIXEL_FORMAT, DBI_PIXEL_INPUT_FORMAT_BGR_888);
+    bflb_dbi_feature_control(dbi_hd, DBI_CMD_INPUT_PIXEL_FORMAT, DBI_PIXEL_INPUT_FORMAT_VUY444);
     // bflb_dbi_feature_control(dbi_hd, DBI_CMD_OUTPUT_PIXEL_FORMAT, DBI_PIXEL_OUTPUT_FORMAT_RGB_888);
-    bflb_dbi_feature_control(dbi_hd, DBI_CMD_YUV_TO_RGB_ENABLE, true);
+    // bflb_dbi_feature_control(dbi_hd, DBI_CMD_YUV_TO_RGB_ENABLE, true);
     lcd_draw_picture_blocking(x1, y1, x2, y2, NULL);
 
     p_src = (uint8_t *)src;
@@ -572,7 +572,7 @@ ATTR_TCM_SECTION void yuyv422_to_yuv444_dbi_display_fast(uint16_t x1, uint16_t y
 
     bflb_dbi_int_clear(dbi_hd, DBI_INTCLR_TC);
 
-    bflb_dbi_feature_control(dbi_hd, DBI_CMD_YUV_TO_RGB_ENABLE, false);
+    // bflb_dbi_feature_control(dbi_hd, DBI_CMD_YUV_TO_RGB_ENABLE, false);
 #if (LCD_COLOR_DEPTH == 32)
     bflb_dbi_feature_control(dbi_hd, DBI_CMD_INPUT_PIXEL_FORMAT, DBI_PIXEL_INPUT_FORMAT_NRGB_8888);
 #elif (LCD_COLOR_DEPTH == 16)
@@ -632,7 +632,6 @@ static ATTR_TCM_SECTION void dbi_disp_lcd_task(void *pvParameters)
         DISP_DBG("yuyv pop: id %d, addr 0x%08X,\r\n", disp_src_frame.elem_base.frame_id, disp_src_frame.elem_base.frame_addr);
 
         uint32_t frame_size = (disp_src_frame.x_end - disp_src_frame.x_start + 1) * (disp_src_frame.y_end - disp_src_frame.y_start) * 2;
-        bflb_l1c_dcache_invalidate_range(disp_src_frame.elem_base.frame_addr, frame_size);
 
 #if (LCD_TE_ENABLE)
     uint32_t mtimer_us = (uint32_t)bflb_mtimer_get_time_us();
@@ -655,10 +654,11 @@ static ATTR_TCM_SECTION void dbi_disp_lcd_task(void *pvParameters)
         /* scaling and disp frame */
 #if (defined(LCD_DBI_INTERFACE_TYPE) || defined(LCD_DBI_WORK_MODE))
 
-#if ((LCD_W >= 480) && (LCD_H >= 640))
-        yuyv422_to_yuv444_dbi_display_fast(disp_src_frame.x_start + (800 - (disp_src_frame.x_end - disp_src_frame.x_start + 1)) / 2,
+// #if ((LCD_W >= 480) && (LCD_H >= 640))
+#if 1
+        yuyv422_to_yuv444_dbi_display_fast(disp_src_frame.x_start + (lcd_max_x - (disp_src_frame.x_end - disp_src_frame.x_start)) / 2,
                                          disp_src_frame.y_start,
-                                         disp_src_frame.x_end + (800 - (disp_src_frame.x_end - disp_src_frame.x_start + 1)) / 2,
+                                         disp_src_frame.x_end + (lcd_max_x - (disp_src_frame.x_end - disp_src_frame.x_start)) / 2,
                                          disp_src_frame.y_end,
                                          disp_src_frame.elem_base.frame_addr);
 #elif ((LCD_W >= 320) && (LCD_H >= 480))

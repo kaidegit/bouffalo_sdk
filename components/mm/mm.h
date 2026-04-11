@@ -387,6 +387,7 @@ size_t kmin_free_size_reset(void);
 
 /* TLSF allocator local declaration */
 extern const mm_allocator_t g_tlsf_allocator;
+extern const mm_allocator_t g_heap5_allocator;
 
 /* Global manager instance - the only global variable */
 extern mem_manager_t g_mem_manager;

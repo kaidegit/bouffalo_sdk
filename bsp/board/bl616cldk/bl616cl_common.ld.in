@@ -10,7 +10,9 @@
  */
 
 /* 4M Flash XIP - BL616CL uses 0x80000000 instead of 0xA0000000 */
+#ifndef CONFIG_FLASH_XIP_ADDRESS
 #define CONFIG_FLASH_XIP_ADDRESS 0x80000000
+#endif
 #ifndef CONFIG_FLASH_XIP_LENGTH
 #define CONFIG_FLASH_XIP_LENGTH 4096 * 1024
 #endif
@@ -79,10 +81,10 @@ MEMORY
     ram  (!rx)        : ORIGIN = RAM_ADDRESS,                       LENGTH = RAM_LENGTH
 #else
     fw_header  (rx)   : ORIGIN = RAM_ADDRESS - (256+16),            LENGTH = 256+16
-    rom_header (rx)   : ORIGIN = RAM_ADDRESS,                       LENGTH = 4K
+    rom_header (rx)   : ORIGIN = RAM_ADDRESS,                       LENGTH = 6K
 
-    ram_nocache (!rx) : ORIGIN = 0x20FE0000,                        LENGTH = 224K - 128K
-    ram  (!rx)        : ORIGIN = 0x60FE0000,                        LENGTH = 224K - 128K
+    ram_nocache (!rx) : ORIGIN = (RAM_ADDRESS + 6K) & 0x2FFFFFFF,   LENGTH = RAM_NOCACHE_LENGTH - 6K
+    ram  (!rx)        : ORIGIN = RAM_ADDRESS + 6K,                  LENGTH = RAM_LENGTH - 6K
 #endif
 
     ram_psram  (wxa)  : ORIGIN = CONFIG_PSRAM_ADDRESS,              LENGTH = CONFIG_PSRAM_LENGTH
@@ -264,16 +266,7 @@ SECTIONS
 
     SECTION_BSS_PROLOGUE(ram_bss, (NOLOAD),)
     {
-        . = ALIGN(16);
-        . = . + 0x1000;
-        __StackTop = .;
-        __freertos_irq_stack_top = .;
-
-#ifdef CONFIG_HIGH_ISR_STACK
-        . = ALIGN(16);
-        . = . + 0x1000;
-        __freertos_high_irq_stack_top = .;
-#endif
+        . = ALIGN(4);
 
         *(.bss*)
         *(.sbss*)
@@ -288,7 +281,16 @@ SECTIONS
 
     SECTION_BSS_PROLOGUE(ram_noinit, (NOLOAD),)
     {
-        . = ALIGN(4);
+        . = ALIGN(16);
+        . = . + 0x1000;
+        __StackTop = .;
+        __freertos_irq_stack_top = .;
+
+#ifdef CONFIG_HIGH_ISR_STACK
+        . = ALIGN(16);
+        . = . + 0x1000;
+        __freertos_high_irq_stack_top = .;
+#endif
         *(.noinit_data*)
         KEEP(*(.heap*))
         . = ALIGN(4);
@@ -441,6 +443,7 @@ SECTIONS
         *(.text*)
         *(.rodata*)
 
+#ifdef CONFIG_SHELL
         /* section information for shell */
         . = ALIGN(4);
         __fsymtab_start = .;
@@ -451,6 +454,7 @@ SECTIONS
         __vsymtab_start = .;
         KEEP(*(VSymTab))
         __vsymtab_end = .;
+#endif
 
         /* section information for usb usbh_class_info */
         . = ALIGN(4);

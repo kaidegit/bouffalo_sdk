@@ -79,6 +79,8 @@
 #define configUSE_TICKLESS_IDLE                 0
 #define configUSE_POSIX_ERRNO                   1
 
+#define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP   1
+
 #define configRECORD_STACK_HIGH_ADDRESS         1
 #define configTASK_NOTIFICATION_ARRAY_ENTRIES   4
 
@@ -111,6 +113,20 @@ to exclude the API function. */
 #define INCLUDE_xTaskAbortDelay          1
 #define INCLUDE_xTaskGetHandle           1
 #define INCLUDE_xSemaphoreGetMutexHolder 1
+
+/* freertos stack allocation from separate heap */
+#if configSTACK_ALLOCATION_FROM_SEPARATE_HEAP
+#include "mm.h"
+
+static inline void *pvPortMallocStack(size_t xSize)
+{
+    return kmalloc(xSize, (MM_FLAG_HEAP_OCRAM_0 | MM_FLAG_ALIGN_CACHE));
+}
+static inline void vPortFreeStack(void *pv)
+{
+    kfree(pv);
+}
+#endif
 
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */

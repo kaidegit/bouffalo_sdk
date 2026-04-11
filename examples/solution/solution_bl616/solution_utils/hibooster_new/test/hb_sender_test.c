@@ -13,7 +13,6 @@
 #include "bflb_core.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "shell.h"
 
 #include "hb_sender.h"
 
@@ -136,6 +135,9 @@ static void test_task_func(void *arg)
 //     LOG_I("User message received: %u bytes\r\n", len);
 //     /* Could process control commands from receiver here */
 // }
+
+#if IS_ENABLED(CONFIG_SHELL)
+#include "shell.h"
 
 /**
  * @brief Shell command: Start test
@@ -377,3 +379,4 @@ SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_test_stop, hb_sender_test_stop, Stop HiBoos
 SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_test_status, hb_sender_test_status, Show HiBooster test status);
 SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_test_img, hb_sender_test_img, Set test image(0 = rotate, 1 - 4 = fixed));
 SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_test_fps, hb_sender_test_fps, Set max frame rate(0 = unlimited, 1 - 100 = FPS));
+#endif

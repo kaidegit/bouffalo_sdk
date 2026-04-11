@@ -40,6 +40,12 @@ void i2c_isr(int irq, void *arg)
         bflb_i2c_int_mask(i2c0, I2C_INTEN_FER, true);
         printf("Error! TX/RX FIFO error interrupt\r\n");
     }
+#if defined(BL616CL)
+    if (status & I2C_INTSTS_TIMEOUT) {
+        bflb_i2c_int_mask(i2c0, I2C_INTEN_TIMEOUT, true);
+        printf("timeout interrupt\r\n");
+    }
+#endif
 }
 
 int main(void)
@@ -52,7 +58,11 @@ int main(void)
     bflb_i2c_init(i2c0, 400000);
 
     /* Set i2c interrupt */
+#if defined(BL616CL)
+    bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER | I2C_INTEN_TIMEOUT, false);
+#else
     bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER, false);
+#endif
     bflb_irq_attach(i2c0->irq_num, i2c_isr, NULL);
     bflb_irq_enable(i2c0->irq_num);
 
@@ -94,7 +104,11 @@ int main(void)
     bflb_mtimer_delay_ms(100);
 
     /* Unmask interrupt */
+#if defined(BL616CL)
+    bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER | I2C_INTEN_TIMEOUT, false);
+#else
     bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER, false);
+#endif
 
     /* Write page 1 */
     subaddr[1] = EEPROM_SELECT_PAGE1;
@@ -117,7 +131,11 @@ int main(void)
     bflb_mtimer_delay_ms(100);
 
     /* Unmask interrupt */
+#if defined(BL616CL)
+    bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER | I2C_INTEN_TIMEOUT, false);
+#else
     bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER, false);
+#endif
 
     /* Read page 0 */
     subaddr[1] = EEPROM_SELECT_PAGE0;
@@ -139,7 +157,11 @@ int main(void)
     bflb_mtimer_delay_ms(100);
 
     /* Unmask interrupt */
+#if defined(BL616CL)
+    bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER | I2C_INTEN_TIMEOUT, false);
+#else
     bflb_i2c_int_mask(i2c0, I2C_INTEN_END | I2C_INTEN_TX_FIFO | I2C_INTEN_RX_FIFO | I2C_INTEN_NACK | I2C_INTEN_ARB | I2C_INTEN_FER, false);
+#endif
 
     /* Read page 1 */
     subaddr[1] = EEPROM_SELECT_PAGE1;

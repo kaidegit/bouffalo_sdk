@@ -31,7 +31,9 @@
 #include <queue.h>
 #include <semphr.h>
 
+#if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
+#endif
 
 #if IS_ENABLED(CONFIG_FHOST)
 #include "fhost_api.h"

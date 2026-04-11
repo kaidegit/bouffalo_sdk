@@ -30,6 +30,15 @@ add_library(sdk_intf_lib INTERFACE)
 add_library(app STATIC)
 target_link_libraries(app sdk_intf_lib)
 
+if(CONFIG_LOG_DISABLE)
+# Disable printf for non-app targets introduced via add_subdirectory below.
+add_compile_options("-Dprintf(...)=")
+add_compile_options("-Dputs(...)=")
+# Keep printf enabled in app.
+target_compile_options(app PRIVATE "-Uprintf")
+target_compile_options(app PRIVATE "-Uputs")
+endif()
+
 include(${BL_SDK_BASE}/cmake/toolchain.cmake)
 include(${BL_SDK_BASE}/cmake/extension.cmake)
 include(${BL_SDK_BASE}/cmake/compiler_flags.cmake)

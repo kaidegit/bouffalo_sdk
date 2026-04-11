@@ -5,6 +5,9 @@
 #endif
 #include "stdarg.h"
 
+#undef printf
+#undef puts
+
 struct bflb_device_s *console = NULL;
 
 int putchar(int c)

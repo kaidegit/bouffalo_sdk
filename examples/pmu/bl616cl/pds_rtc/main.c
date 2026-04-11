@@ -6,11 +6,12 @@
 #include "bl616cl_hbn.h"
 #include "bl616cl_aon.h"
 #include "bl616cl_pm.h"
+#include "bl_lp.h"
+#ifdef CONFIG_PSRAM
+#include "psram_test.h"
+#endif
 
 #define PDS_RTC_WAKEUP_TIME (5*1000*1000/32)
-#define PDS_PRINT_DELAY     200
-
-extern void pds_enter(uint32_t pds_level, uint32_t sleep_time);
 
 void HBN_OUT0_IRQ_Handler(void)
 {
@@ -60,7 +61,7 @@ int main(void)
         HBN_Get_RTC_Timer_Val(&rtc_val_l, &rtc_val_h);
         printf("RTC val: %u, %u\r\n", rtc_val_l, rtc_val_h);
         bflb_irq_attach(HBN_OUT0_IRQn, (irq_callback)HBN_OUT0_IRQ_Handler, NULL);
-        // bflb_irq_enable(HBN_OUT0_IRQn); //if enable this IRQ, CPU will continue run after HBN interrupt but before resuming PDS state 
+        // bflb_irq_enable(HBN_OUT0_IRQn); //if enable this IRQ, CPU will continue run after HBN interrupt but before resuming PDS state
 
         PDS_Mask_All_Wakeup_Src();
         HBN_Pin_WakeUp_Mask(0xF);
@@ -71,47 +72,47 @@ int main(void)
         HBN_Set_Version(num + 1);
         printf("num is %d\r\n", num);
 
+#ifdef CONFIG_PSRAM
+        psram_test_prepare();
+#endif
+
         if (num == 0) {
             pm_pds_irq_register();
             printf("enter pds1 mode\r\n");
-            arch_delay_us(PDS_PRINT_DELAY);
-            pds_enter(PM_PDS_LEVEL_1, 0);
+            arch_delay_ms(10);  /* Wait for log output */
+            bl_lp_pds_enter_with_restore(PM_PDS_LEVEL_1, 0);
             printf("pds1 wakeup\r\n");
-            /* will excute delay */
-            arch_delay_ms(10000);
         } else if (num == 1) {
             printf("enter pds2 mode\r\n");
-            arch_delay_us(PDS_PRINT_DELAY);
-            pds_enter(PM_PDS_LEVEL_2, 0);
+            arch_delay_ms(10);  /* Wait for log output */
+            bl_lp_pds_enter_with_restore(PM_PDS_LEVEL_2, 0);
             printf("pds2 wakeup\r\n");
-            /* will NOT excute delay */
-            arch_delay_ms(10000);
         } else if (num == 2) {
             printf("enter pds3 mode\r\n");
-            arch_delay_us(PDS_PRINT_DELAY);
-            pds_enter(PM_PDS_LEVEL_3, 0);
+            arch_delay_ms(10);  /* Wait for log output */
+            bl_lp_pds_enter_with_restore(PM_PDS_LEVEL_3, 0);
             printf("pds3 wakeup\r\n");
-            /* will NOT excute delay */
-            arch_delay_ms(10000);
         } else if (num == 3) {
             printf("enter pds7 mode\r\n");
-            arch_delay_us(PDS_PRINT_DELAY);
-            pds_enter(PM_PDS_LEVEL_7, 0);
+            arch_delay_ms(10);  /* Wait for log output */
+            bl_lp_pds_enter_with_restore(PM_PDS_LEVEL_7, 0);
             printf("pds7 wakeup\r\n");
-            /* will NOT excute delay */
-            arch_delay_ms(10000);
         } else if (num == 4) {
             printf("enter pds15 mode\r\n");
-            arch_delay_us(PDS_PRINT_DELAY);
-            pds_enter(PM_PDS_LEVEL_15, 0);
+            arch_delay_ms(10);  /* Wait for log output */
+            bl_lp_pds_enter_with_restore(PM_PDS_LEVEL_15, 0);
             printf("pds15 wakeup\r\n");
-            /* will NOT excute delay */
-            arch_delay_ms(10000);
         } else {
             printf("SUCCESS\r\n");
             BL_WR_REG(AON_BASE, HBN_RSV0, 0);
             while (1) {
             }
         }
+
+#ifdef CONFIG_PSRAM
+        psram_test_verify();
+#endif
+        /* will NOT excute delay */
+        arch_delay_ms(10000);
     }
 }

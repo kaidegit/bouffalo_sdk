@@ -243,6 +243,14 @@ static void wl80211_event_handler(async_input_event_t ev, void *priv)
             async_post_event(EV_WIFI, CODE_WIFI_ON_AP_STOPPED, 0);
             handler = stop_dhcpd_tsk;
             break;
+
+        case WL80211_EVT_AP_STA_ADDED:
+            async_post_event(EV_WIFI, CODE_WIFI_ON_AP_STA_ADD, 0);
+            break;
+
+        case WL80211_EVT_AP_STA_DEL:
+            async_post_event(EV_WIFI, CODE_WIFI_ON_AP_STA_DEL, 0);
+            break;
     }
 
     void rtos_start_evt_task(void (*handler)(void));

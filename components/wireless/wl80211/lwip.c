@@ -97,10 +97,10 @@ err_t wl80211_output(struct netif *net_if, struct pbuf *buf)
     struct pbuf *buf_t = buf->next;
     int idx = 1;
     while (remain_len && buf_t && (idx < 5)) {
-        txseg[idx].iov_base = buf->payload;
-        txseg[idx].iov_len = buf->len;
+        txseg[idx].iov_base = buf_t->payload;
+        txseg[idx].iov_len = buf_t->len;
 
-        remain_len -= buf->len;
+        remain_len -= buf_t->len;
         idx++;
         buf_t = buf_t->next;
     }

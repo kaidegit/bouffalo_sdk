@@ -67,6 +67,7 @@ typedef struct {
     uint16_t frame_depth;        /* Frame queue depth, must be power of 2 (0=default 4) */
     uint16_t ack_interval_ms;    /* ACK interval (0=default 20ms) */
     uint16_t frame_timeout_ms;   /* Frame timeout (0=default 2000ms) */
+    uint16_t task_priority;      /* Receiver task priority (0=default) */
     void (*loop_cb)(void *arg);  /* Main loop callback */
     void *loop_cb_arg;           /* Callback argument */
 } hb_recv_config_t;

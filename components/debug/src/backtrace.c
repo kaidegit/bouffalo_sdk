@@ -192,10 +192,15 @@ void backtrace_now(void)
     uint32_t addrs[CONFIG_BACKTRACE_DEPTH];
     uintptr_t sp = get_sp();
     uintptr_t pc = get_pc();
+    char *task_name;
 
-    /* Get current task name */
-    TaskHandle_t cur = xTaskGetCurrentTaskHandle();
-    const char *task_name = pcTaskGetName(cur);
+    if(taskSCHEDULER_NOT_STARTED == xTaskGetSchedulerState()) {
+        task_name = "null";
+    } else {
+        /* Get current task name */
+        TaskHandle_t cur = xTaskGetCurrentTaskHandle();
+        task_name = pcTaskGetName(cur);
+    }
 
     int count = backtrace_unwind(pc, sp, addrs, CONFIG_BACKTRACE_DEPTH);
 
@@ -209,6 +214,9 @@ void backtrace_now(void)
 
 void backtrace_tasks_all(void)
 {
+    if(taskSCHEDULER_NOT_STARTED ==  xTaskGetSchedulerState()) {
+        return;
+    }
     /* Use static array to avoid malloc in interrupt context */
     static TaskStatus_t tasks[32];  /* Support up to 32 tasks */
     UBaseType_t num = uxTaskGetNumberOfTasks();
@@ -262,6 +270,9 @@ void backtrace_tasks_all(void)
 
 void backtrace_tasks_all_isr(void)
 {
+    if(taskSCHEDULER_NOT_STARTED ==  xTaskGetSchedulerState()) {
+        return;
+    }
     printf("\r\n========== Backtrace All Tasks (ISR) ==========\r\n");
     vTaskHandleForeachFromISR(backtrace_task_from_isr_cb);
     printf("================================================\r\n\r\n");

@@ -72,8 +72,6 @@ static int get_frm_cb(struct strm_info *strm_info, struct frm_info *frm_info)
         } else {
             RTC_DBG("get jpeg id: %d, addr 0x%X, size %d,\r\n", jpeg_frame_info.elem_base.frame_id, jpeg_frame_info.elem_base.frame_addr, jpeg_frame_info.data_size);
 
-            bflb_l1c_dcache_invalidate_range(jpeg_frame_info.elem_base.frame_addr, jpeg_frame_info.data_size);
-
             memcpy(frm_info->frm_buf, (uint8_t *)jpeg_frame_info.elem_base.frame_addr, jpeg_frame_info.data_size);
             frm_info->frm_sz = jpeg_frame_info.data_size;
             get_count++;

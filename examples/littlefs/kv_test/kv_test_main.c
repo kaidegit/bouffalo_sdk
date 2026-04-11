@@ -23,8 +23,11 @@
 
 #include "kv_test.h"
 #include "shell.h"
+#include "arch_os.h"
 
 #include "log.h"
+
+#define KV_OK    0
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -38,9 +41,12 @@ void cmd_kv_test(int argc, char **argv)
 	LOG_I("%s begin\n", __FUNCTION__);
 	int ret = 0;
 	int num = 0;
-	kv_test();
-	while (1) {
-		arch_os_ms_sleep(20000);
-		num++;
+	ret = kv_test();
+	if (ret == KV_OK) {
+		LOG_I("KV test initiated successfully\n");
+		LOG_I("Test will run for approximately %d seconds\n",
+		      (CONFIG_KV_TEST_FILE_OPER_SUM * CONFIG_KV_TEST_FILE_OPER_PERIOD) / 1000);
+	} else {
+		LOG_E("KV test initialization failed\n");
 	}
 }

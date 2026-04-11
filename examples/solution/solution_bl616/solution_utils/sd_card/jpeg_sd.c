@@ -121,9 +121,6 @@ static void save_jpeg_to_sdcard(void *pvParameters)
 
         save_cnt++;
 
-        /* invalid dcache */
-        bflb_l1c_dcache_invalidate_range(jpeg_frame.elem_base.frame_addr, jpeg_frame.data_size + 31);
-
         ret = f_open(&fnew, str_buff, FA_CREATE_NEW | FA_WRITE);
 
         if (ret == FR_OK) {

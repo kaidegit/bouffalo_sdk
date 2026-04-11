@@ -7,6 +7,4 @@ sdk_add_include_directories(.)
 
 sdk_set_main_file(main.c)
 
-sdk_add_link_options(-Wl,--build-id)
-
 project(crash)

@@ -3,6 +3,20 @@
 
 __attribute__((weak)) int btblecontroller_task_new(btblecontroller_TaskFunction_t taskFunction,const char *name, int stack_size, void *arg, int prio,void *taskHandler)
 {
+#if defined(CONFIG_BLE_BEACON_ONLY)
+    extern StackType_t  *g_bl_ctrl_task_stack;
+    extern StaticTask_t *g_bl_ctrl_task_tcb;
+    if (g_bl_ctrl_task_stack && g_bl_ctrl_task_tcb) {
+        TaskHandle_t handle = xTaskCreateStatic(
+            (TaskFunction_t)taskFunction, name, stack_size, arg, prio,
+            g_bl_ctrl_task_stack, g_bl_ctrl_task_tcb);
+        if (handle == NULL) {
+            return pdFAIL;
+        }
+        *(TaskHandle_t *)taskHandler = handle;
+        return pdPASS;
+    }
+#endif
     return xTaskCreate( (TaskFunction_t)taskFunction, name, stack_size, arg, prio,(TaskHandle_t * const)taskHandler);
 }
 

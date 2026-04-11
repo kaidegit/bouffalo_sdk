@@ -11,5 +11,3 @@ ifeq ($(CONFIG_PSRAM),y)
 else
     CONFIG_OVERRIDE_PTFILE =4M_core.toml
 endif
-
-CONFIG_COREDUMP_V2 =y

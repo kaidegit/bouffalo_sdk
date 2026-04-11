@@ -403,7 +403,8 @@ int backtrace(uint32_t pc, uint32_t sp,
         addrs[count++] = pc;
 
         uint32_t new_pc, new_sp;
-        if (!unwind_frame(pc, sp, segments, num_segments, &new_pc, &new_sp)) {
+        // In almost all cases, pc - 4 for get the current stack frame.
+        if (!unwind_frame(pc - 4, sp, segments, num_segments, &new_pc, &new_sp)) {
             break;
         }
 

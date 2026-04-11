@@ -24,7 +24,7 @@ else()
         endif()
     endif()
 
-    if(NOT CONFIG_BLE_HOST_DISABLE)
+    if(NOT CONFIG_BLE_HOST_DISABLE AND NOT CONFIG_BLE_BEACON_ONLY)
         add_subdirectory(blestack)
         if (CONFIG_BT_MESH)
             add_subdirectory(blemesh)

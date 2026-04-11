@@ -21,10 +21,10 @@
 /******************* yuyv frame  **********************/
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_YUYV)
 
-#if (YUYV_FRAME_SHARE_EN)
-FRAME_BUFFER_ATTR uint8_t picture_frame_buffer[1][YUYV_FRAME_SIZE]; /* YUYV raw data */
+#if IS_ENABLED(CONFIG_SOLUTION_QUEUE_YUYV_SHARE_EN)
+FRAME_BUFFER_ATTR uint8_t picture_frame_buffer[1][CONFIG_YUYV_FRAME_SIZE]; /* YUYV raw data */
 #else
-FRAME_BUFFER_ATTR uint8_t picture_frame_buffer[YUYV_FRAME_NUM][YUYV_FRAME_SIZE]; /* YUYV raw data */
+FRAME_BUFFER_ATTR uint8_t picture_frame_buffer[CONFIG_YUYV_FRAME_NUM][CONFIG_YUYV_FRAME_SIZE]; /* YUYV raw data */
 #endif
 
 frame_queue_ctrl_t *g_yuyv_frame_ctrl = NULL;
@@ -35,11 +35,11 @@ int yuyv_frame_ctrl_init(void)
     printf("yuyv_frame_ctrl_init\r\n");
 
     /* fill info */
-    pyuyv_frame_t frame_desc[YUYV_FRAME_NUM];
-    for (uint16_t i = 0; i < YUYV_FRAME_NUM; i++) {
+    pyuyv_frame_t frame_desc[CONFIG_YUYV_FRAME_NUM];
+    for (uint16_t i = 0; i < CONFIG_YUYV_FRAME_NUM; i++) {
         frame_desc[i].elem_base.frame_id = i;
-        frame_desc[i].elem_base.frame_size = YUYV_FRAME_SIZE;
-#if (YUYV_FRAME_SHARE_EN)
+        frame_desc[i].elem_base.frame_size = CONFIG_YUYV_FRAME_SIZE;
+#if IS_ENABLED(CONFIG_SOLUTION_QUEUE_YUYV_SHARE_EN)
         frame_desc[i].elem_base.frame_addr = picture_frame_buffer[0];
 #else
         frame_desc[i].elem_base.frame_addr = picture_frame_buffer[i];
@@ -51,7 +51,7 @@ int yuyv_frame_ctrl_init(void)
     }
 
     /* create ctrl */
-    ret = frame_queue_create(&g_yuyv_frame_ctrl, YUYV_FRAME_NUM, sizeof(pyuyv_frame_t), (void *)frame_desc, "yuyv");
+    ret = frame_queue_create(&g_yuyv_frame_ctrl, CONFIG_YUYV_FRAME_NUM, sizeof(pyuyv_frame_t), (void *)frame_desc, "yuyv");
 
     if (ret < 0) {
         printf("yuyv frame ctrl create failed\r\n");
@@ -65,7 +65,7 @@ int yuyv_frame_ctrl_init(void)
 
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_MJPEG)
 
-FRAME_BUFFER_ATTR uint8_t jpeg_frame_buffer[MJPEG_FRAME_NUM][MJPEG_FRAME_SIZE]; /* Multi buffer queue */
+FRAME_BUFFER_ATTR uint8_t jpeg_frame_buffer[CONFIG_MJPEG_FRAME_NUM][CONFIG_MJPEG_FRAME_SIZE]; /* Multi buffer queue */
 
 frame_queue_ctrl_t *g_jpeg_frame_ctrl = NULL;
 
@@ -76,16 +76,16 @@ int jpeg_frame_ctrl_init(void)
     printf("jpeg_frame_ctrl_init\r\n");
 
     /* fill info */
-    jpeg_frame_t frame_desc[MJPEG_FRAME_NUM];
-    for (uint16_t i = 0; i < MJPEG_FRAME_NUM; i++) {
+    jpeg_frame_t frame_desc[CONFIG_MJPEG_FRAME_NUM];
+    for (uint16_t i = 0; i < CONFIG_MJPEG_FRAME_NUM; i++) {
         frame_desc[i].elem_base.frame_id = i;
-        frame_desc[i].elem_base.frame_size = MJPEG_FRAME_SIZE;
+        frame_desc[i].elem_base.frame_size = CONFIG_MJPEG_FRAME_SIZE;
         frame_desc[i].elem_base.frame_addr = jpeg_frame_buffer[i];
         frame_desc[i].data_size = 0;
     }
 
     /* create ctrl */
-    ret = frame_queue_create(&g_jpeg_frame_ctrl, MJPEG_FRAME_NUM, sizeof(jpeg_frame_t), (void *)frame_desc, "jpeg");
+    ret = frame_queue_create(&g_jpeg_frame_ctrl, CONFIG_MJPEG_FRAME_NUM, sizeof(jpeg_frame_t), (void *)frame_desc, "jpeg");
 
     if (ret < 0) {
         printf("jpeg frame ctrl create failed\r\n");
@@ -99,7 +99,7 @@ int jpeg_frame_ctrl_init(void)
 /******************* audio input frame  **********************/
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_AUDIO_IN)
 
-FRAME_BUFFER_ATTR uint8_t auadc_frame_buffer[AUDIO_IN_FRAME_NUM][AUDIO_IN_FRAME_SIZE]; /* Multi buffer queue */
+FRAME_BUFFER_ATTR uint8_t auadc_frame_buffer[CONFIG_AUDIO_IN_FRAME_NUM][CONFIG_AUDIO_IN_FRAME_SIZE]; /* Multi buffer queue */
 
 frame_queue_ctrl_t *g_audio_in_frame_ctrl = NULL;
 
@@ -110,17 +110,17 @@ int auadc_in_frame_ctrl_init(void)
     printf("auadc_in_frame_ctrl_init\r\n");
 
     /* fill info */
-    audio_in_frame_t frame_desc[AUDIO_IN_FRAME_NUM];
-    for (uint16_t i = 0; i < AUDIO_IN_FRAME_NUM; i++) {
+    audio_in_frame_t frame_desc[CONFIG_AUDIO_IN_FRAME_NUM];
+    for (uint16_t i = 0; i < CONFIG_AUDIO_IN_FRAME_NUM; i++) {
         frame_desc[i].elem_base.frame_id = i;
-        frame_desc[i].elem_base.frame_size = AUDIO_IN_FRAME_SIZE;
+        frame_desc[i].elem_base.frame_size = CONFIG_AUDIO_IN_FRAME_SIZE;
         frame_desc[i].elem_base.frame_addr = auadc_frame_buffer[i];
         frame_desc[i].data_size = 0;
         frame_desc[i].frame_mode = 0;
     }
 
     /* create ctrl */
-    ret = frame_queue_create(&g_audio_in_frame_ctrl, AUDIO_IN_FRAME_NUM, sizeof(audio_in_frame_t), (void *)frame_desc, "audio_in");
+    ret = frame_queue_create(&g_audio_in_frame_ctrl, CONFIG_AUDIO_IN_FRAME_NUM, sizeof(audio_in_frame_t), (void *)frame_desc, "audio_in");
 
     if (ret < 0) {
         printf("audio input frame ctrl create failed\r\n");
@@ -134,7 +134,7 @@ int auadc_in_frame_ctrl_init(void)
 /******************* audio output frame  **********************/
 #if IS_ENABLED(CONFIG_SOLUTION_QUEUE_AUDIO_OUT)
 
-FRAME_BUFFER_ATTR uint8_t audac_frame_buffer[AUDIO_OUT_FRAME_NUM][AUDIO_OUT_FRAME_SIZE]; /* Multi buffer queue */
+FRAME_BUFFER_ATTR uint8_t audac_frame_buffer[CONFIG_AUDIO_OUT_FRAME_NUM][CONFIG_AUDIO_OUT_FRAME_SIZE]; /* Multi buffer queue */
 
 frame_queue_ctrl_t *g_audio_out_frame_ctrl = NULL;
 
@@ -145,17 +145,17 @@ int auadc_out_frame_ctrl_init(void)
     printf("auadc_out_frame_ctrl_init\r\n");
 
     /* fill info */
-    audio_out_frame_t frame_desc[AUDIO_OUT_FRAME_NUM];
-    for (uint16_t i = 0; i < AUDIO_OUT_FRAME_NUM; i++) {
+    audio_out_frame_t frame_desc[CONFIG_AUDIO_OUT_FRAME_NUM];
+    for (uint16_t i = 0; i < CONFIG_AUDIO_OUT_FRAME_NUM; i++) {
         frame_desc[i].elem_base.frame_id = i;
-        frame_desc[i].elem_base.frame_size = AUDIO_OUT_FRAME_SIZE;
+        frame_desc[i].elem_base.frame_size = CONFIG_AUDIO_OUT_FRAME_SIZE;
         frame_desc[i].elem_base.frame_addr = audac_frame_buffer[i];
         frame_desc[i].data_size = 0;
         frame_desc[i].frame_mode = 0;
     }
 
     /* create ctrl */
-    ret = frame_queue_create(&g_audio_out_frame_ctrl, AUDIO_OUT_FRAME_NUM, sizeof(audio_out_frame_t), (void *)frame_desc, "audio_out");
+    ret = frame_queue_create(&g_audio_out_frame_ctrl, CONFIG_AUDIO_OUT_FRAME_NUM, sizeof(audio_out_frame_t), (void *)frame_desc, "audio_out");
 
     if (ret < 0) {
         printf("audio output frame ctrl create failed\r\n");

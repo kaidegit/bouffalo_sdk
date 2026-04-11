@@ -43,6 +43,7 @@ typedef struct {
     /* Optional: Advanced configuration */
     uint16_t frame_depth;       // Ring buffer depth, must be power of 2, 0: default 4
     uint16_t burst_count;       // Burst send count per cycle, 0: auto
+    uint16_t task_priority;     // Sender task priority, 0: default
     void (*loop_cb)(void *arg); // The loop callback function of the main thread
     void *loop_cb_arg;          // argument of the loop callback function
 } hb_sender_config_t;

@@ -149,8 +149,8 @@ int st7796_spi_init()
  */
 int st7796_spi_set_dir(uint8_t dir, uint8_t mir_flag)
 {
-    uint8_t dir_param[4] = { 0x00, 0x60, 0xA0, 0xC0 };
-    uint8_t mir_param[4] = { 0x40, 0xE0, 0x20, 0x80 };
+    uint8_t dir_param[4] = { 0x00, 0x60, 0xC0, 0xA0 };
+    uint8_t mir_param[4] = { 0x40, 0xE0, 0x80, 0x20 };
     uint8_t param;
 
     if (dir >= 4) {

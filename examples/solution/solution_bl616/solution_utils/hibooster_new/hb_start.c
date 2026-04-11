@@ -3,7 +3,9 @@
 #include "bflb_core.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#if IS_ENABLED(CONFIG_SHELL)
 #include "shell.h"
+#endif
 
 #include "hb_sender.h"
 
@@ -156,6 +158,7 @@ int hb_sender_deinit(void)
 }
 
 #if IS_ENABLED(CONFIG_SHELL)
+#include "shell.h"
 
 static int cmd_hb_sender_start(int argc, char **argv)
 {
@@ -168,15 +171,12 @@ static int cmd_hb_sender_start(int argc, char **argv)
 
     return 0;
 }
-SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_start, hb_sender_start, Start HiBooster sender);
 
 static int cmd_hb_sender_stop(int argc, char **argv)
 {
     hb_sender_deinit();
     return 0;
 }
-
-SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_stop, hb_sender_stop, Stop HiBooster sender);
 
 static int cmd_hb_sender_status(int argc, char **argv)
 {
@@ -228,6 +228,8 @@ static int cmd_hb_sender_status(int argc, char **argv)
 
     return 0;
 }
-SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_status, hb_sender_status, Show HiBooster status);
 
+SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_start, hb_sender_start, Start HiBooster sender);
+SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_stop, hb_sender_stop, Stop HiBooster sender);
+SHELL_CMD_EXPORT_ALIAS(cmd_hb_sender_status, hb_sender_status, Show HiBooster status);
 #endif
